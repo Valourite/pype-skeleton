@@ -12,6 +12,7 @@ return [
     'providers' => [
         Pype\Database\DatabaseProvider::class,
         Pype\Auth\AuthProvider::class,
+        Pype\Session\SessionProvider::class,
         Pype\View\ViewProvider::class,
         App\Providers\AppProvider::class,
     ],

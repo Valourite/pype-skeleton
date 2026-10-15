@@ -141,3 +141,39 @@ p { margin: 0 0 1rem; }
     .nav { gap: 0.9rem; }
     .routes td:last-child { display: none; }
 }
+
+/* ── Forms ──────────────────────────────────────────── */
+
+.auth-card { max-width: 26rem; margin: 0 auto; }
+.auth-card h1 { font-size: 1.6rem; }
+.small { font-size: 0.875rem; margin: 1.25rem 0 0; }
+
+.form { display: grid; gap: 1rem; margin-top: 1.25rem; }
+.field { display: grid; gap: 0.35rem; font-size: 0.925rem; }
+.field span { font-weight: 600; }
+.field input {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+}
+.field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.field.has-error input { border-color: var(--danger); }
+.field-error { color: var(--danger); }
+
+.button {
+    font: 600 0.95rem var(--font);
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+}
+.button:hover { filter: brightness(1.08); }
+.button.secondary { background: var(--code-bg); color: var(--text); }
+.inline-form { margin-top: 1.5rem; }
+
+.notice { background: var(--accent-soft); color: var(--accent); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.925rem; }

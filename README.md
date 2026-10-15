@@ -62,7 +62,8 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 
 | Stage / service                     | Use                                                                     |
 |-------------------------------------|-------------------------------------------------------------------------|
-| `Pype\Auth\Authenticate` / `'auth'` | bearer-token auth; injects your `User` and the `AccessToken`            |
+| `'auth'` / `new Authenticate(...)`  | require a user, found by guards (session, bearer token, or your own)    |
+| `'web'`                             | session cookie + CSRF check + validation errors back to the form         |
 | `Pype\Auth\Auth`                    | `createUser`, `attempt`, `issueToken`, `revoke`, `revokeAll`            |
 | `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`)                         |
 | `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success                  |
@@ -70,7 +71,39 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
 
-Auth endpoints in `routes/api.php`: `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /me`.
+## Two ways in: pages and JSON
+
+The same users and stages serve both. Only the first and last stages differ.
+
+- **`routes/web.php`**: browser pages. The `'web'` stack starts a session (cookie), checks the CSRF
+  token on every form post, and sends a failed form back to itself with errors and old input.
+  `/login`, `/register`, `/account`, `POST /logout`.
+- **`routes/api.php`**: JSON for apps and scripts, authenticated with bearer tokens.
+  `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /me`.
+
+Auth isn't tied to either. `Authenticate` asks a list of *guards* who the user is (from
+`config/auth.php`: session, then bearer token). How a user proves who they are is your
+handler's job; `SessionGuard::login()` just remembers the result. For anything else (API keys,
+JWT, a header from your proxy), implement `Pype\Auth\Guard`:
+
+```php
+$router->get('/account', ['web', new Authenticate(redirectTo: '/login'), ...]);    // browsers
+$router->get('/me', ['auth', fn (User $user) => $user]);                             // tokens
+$router->post('/hooks', [new Authenticate(guards: [ApiKeyGuard::class]), ...]);      // your own
+```
+
+Forms in templates:
+
+```php
+<form method="post" action="/login">
+    <?= $this->csrf() ?>
+    <input name="email" value="<?= e($this->old('email')) ?>">
+    <?= e($this->error('email')) ?>
+</form>
+```
+
+A session cookie only authenticates routes in the `'web'` stack, so every cookie-authenticated
+form post is CSRF-checked.
 
 ## Database
 
@@ -80,6 +113,11 @@ Postgres are configured in `config/database.php`. Type-hint `Pype\Database\Conne
 ```php
 $db->table('users')->where('id', $id)->as(User::class)->first();
 $db->table('posts')->insert(['title' => 'Hello']);
+$db->table('posts as p')
+    ->join('users as u', 'u.id', '=', 'p.user_id')
+    ->select('u.name')->selectRaw('COUNT(*) AS posts')
+    ->groupBy('u.id')->orderBy('posts', 'desc')->get();
+$db->table('orders')->where('user_id', $id)->sum('total');
 $db->select('SELECT * FROM users WHERE email LIKE ?', ['%@example.com']);
 $db->transaction(fn (Connection $db) => ...);
 ```
@@ -122,11 +160,11 @@ Errors on HTML routes render `errors/{status}.php`, falling back to `errors/erro
 ```
 app/          your code: Stages, Handlers, Views, Providers, Data
 bootstrap/    builds the Application
-config/       plain PHP arrays (app, auth, database)
+config/       plain PHP arrays (app, auth, database, session)
 database/     migrations/*.sql and the SQLite file
 public/       web root (index.php, css/)
 resources/    views/
-routes/       route definitions
+routes/       web.php (pages, sessions) and api.php (JSON, tokens)
 tests/        PHPUnit feature tests (Pype\Testing\TestClient, in-memory SQLite)
 bin/pype      CLI
 vendor/       pype/framework lives here

@@ -23,7 +23,5 @@ jobs:
           extensions: pdo_sqlite
           coverage: none
 
-      # Until pype/framework is on Packagist, resolve it straight from GitHub.
-      - run: composer config repositories.pype-framework vcs https://github.com/Valourite/pype-framework
       - run: composer install --no-interaction --no-progress
       - run: vendor/bin/phpunit

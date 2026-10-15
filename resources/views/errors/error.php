@@ -9,6 +9,7 @@ $fallback = match ($status) {
     401 => 'You need to sign in to see this.',
     403 => "You don't have access to this.",
     404 => "We couldn't find that page.",
+    419 => 'This page expired. Go back, refresh and try again.',
     429 => 'Too many requests. Try again in a moment.',
     default => 'Something went wrong on our side.',
 };

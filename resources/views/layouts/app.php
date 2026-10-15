@@ -22,6 +22,7 @@ $appName = env('APP_NAME', 'pype');
             <a class="brand" href="/"><span class="brand-mark">p</span><?= e($appName) ?></a>
             <nav class="nav">
                 <a href="/">Home</a>
+                <a href="/account">Account</a>
                 <a href="/health">API</a>
                 <a href="https://github.com/Valourite/pype-framework">Docs</a>
             </nav>

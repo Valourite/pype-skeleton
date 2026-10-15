@@ -14,6 +14,7 @@ $app = new Application(
     config: Application::loadConfig(__DIR__ . '/../config'),
 );
 
-$app->routes(__DIR__ . '/../routes/api.php');
+$app->routes(__DIR__ . '/../routes/web.php');   // pages: sessions, CSRF, browser login
+$app->routes(__DIR__ . '/../routes/api.php');   // JSON: bearer tokens
 
 return $app;

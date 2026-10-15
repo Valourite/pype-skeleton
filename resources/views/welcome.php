@@ -26,7 +26,7 @@ $describe = static fn (mixed $stage): string => match (true) {
 <div class="grid">
     <div class="card">
         <h3>Routes</h3>
-        <p>Define pipelines in <code>routes/api.php</code>.</p>
+        <p>Pages in <code>routes/web.php</code> (sessions), JSON in <code>routes/api.php</code> (tokens).</p>
     </div>
     <div class="card">
         <h3>Stages</h3>
