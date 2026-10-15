@@ -5,7 +5,7 @@ one end, passes through the **stages** you list, and comes out as data — JSON 
 through a view.
 
 ```
-Request ─▶ [global stages] ─▶ route ─▶ [group + route stages] ─▶ Response ─▶ Formatter ─▶ output
+Request ─▶ [global stages] ─▶ route ─▶ [group + route stages] ─▶ Response ─▶ Outlet ─▶ output
 ```
 
 ## Quick start
@@ -37,10 +37,10 @@ $router->get('/users/{id}', ['auth', FindUser::class, ShowUser::class]);
 - `FindUser` — a **stage**: `handle(Request $request, Closure $next)`; loads the user into the context
 - `ShowUser` — an invokable class: `__invoke(User $user)`, parameters injected by type
 
-Swap the exit and the same stages render HTML:
+Swap the **outlet** — the stage where the flow leaves the pipeline — and the same stages render HTML:
 
 ```php
-$router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, new View('users/profile')]);
+$router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, UserProfile::class]);
 ```
 
 ## Concepts
@@ -51,7 +51,7 @@ $router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, new View(
 | Injection  | closures/invokables get params by type or name: `fn (User $user, int $id, Connection $db) => ...`  |
 | Context    | typed per-request store: `$request->context()->put($user)` / `->get(User::class)`                  |
 | Stack      | named reusable stage list: `$app->stack('admin', ['auth', EnsureAdmin::class])`                    |
-| Formatter  | turns a Response into output (JSON default, `View` for HTML); route beats group beats global       |
+| Outlet     | the exit stage that writes the result out: `JsonOutlet` (default), `View`, or your own subclass    |
 | Provider   | `register(Application $app)` — how the app and composer packages plug in (`config/app.php`)        |
 | Errors     | `$app->renderUsing(Type::class, fn ...)` maps exceptions; `$app->reportUsing(...)` logs/alerts     |
 
@@ -86,9 +86,28 @@ $db->transaction(fn (Connection $db) => ...);
 
 Migrations are plain `.sql` files in `database/migrations`, applied in filename order.
 
+## Outlets
+
+Every pipeline ends in an outlet. It can sit anywhere in a stage list (pype moves it to the exit),
+and the closest one wins: **route → group → global → app default**.
+
+```php
+$app->outlet(MyJson::class);                                      // app default (JsonOutlet otherwise)
+$router->group('/admin', ['auth', new View('admin/page')], ...);  // every route in the group
+$router->get('/report.csv', [LoadReport::class, CsvOutlet::class]); // one route
+```
+
+Custom formats extend `Pype\Outlet\Outlet` (`render()` + `contentType()`), or extend `JsonOutlet` and
+override `payload()` to change the JSON envelope. `php bin/pype make:outlet CsvOutlet` scaffolds one.
+
 ## Views
 
 Plain PHP templates in `resources/views`, styled by `public/css/app.css` (no build step).
+
+- Quick: `new View('welcome')` at the end of a route.
+- Class-based: extend `Pype\View\ViewOutlet` (see `app/Views/UserProfile.php`) — choose the template,
+  shape the data in `data()`, inject services in the constructor, and call its methods from the
+  template as `$view->initials($user)`.
 
 ```php
 <?php $this->layout('layouts/app', ['title' => $data->name]) ?>
@@ -101,7 +120,7 @@ Errors on HTML routes render `errors/{status}.php`, falling back to `errors/erro
 ## Layout
 
 ```
-app/          your code: Stages, Handlers, Providers, Data
+app/          your code: Stages, Handlers, Views, Providers, Data
 bootstrap/    builds the Application
 config/       plain PHP arrays (app, auth, database)
 database/     migrations/*.sql and the SQLite file

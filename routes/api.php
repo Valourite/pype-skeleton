@@ -8,6 +8,7 @@ use App\Handlers\Auth\Logout;
 use App\Handlers\Auth\Register;
 use App\Handlers\ShowUser;
 use App\Stages\FindUser;
+use App\Views\UserProfile;
 use Pype\Database\Connection;
 use Pype\Routing\Router;
 use Pype\Stages\Throttle;
@@ -17,11 +18,13 @@ use Pype\View\View;
 /** @var Router $router */
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
-// A View at the end of a route renders HTML instead of JSON.
+// An outlet decides how a route's result leaves the pipeline. JSON is the default;
+// a View renders a template instead.
 $router->get('/', [fn (Router $router) => ['routes' => $router->routes()], new View('welcome')]);
 
-// Same stages as GET /users/{id} below — only the exit differs.
-$router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, new View('users/profile')]);
+// Same stages as GET /users/{id} below — only the outlet differs. UserProfile is a
+// class-based view (app/Views): its own template, data shaping and helper methods.
+$router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, UserProfile::class]);
 
 // ── API ───────────────────────────────────────────────────────────────────────
 $router->get('/health', fn () => ['status' => 'ok']);

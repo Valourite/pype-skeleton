@@ -7,7 +7,7 @@ return [
     // Where View templates live (relative to the project root).
     'views' => 'resources/views',
 
-    // Providers wire services, stacks, global stages and formatters into the app.
+    // Providers wire services, stacks, global stages and outlets into the app.
     // Composer packages can ship their own Provider; list it here to enable it.
     'providers' => [
         Pype\Database\DatabaseProvider::class,

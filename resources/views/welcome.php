@@ -19,7 +19,7 @@ $describe = static fn (mixed $stage): string => match (true) {
     <span>RequestId</span><i>→</i>
     <span>Cors</span><i>→</i>
     <span>your stages</span><i>→</i>
-    <span>Formatter</span><i>→</i>
+    <span>Outlet</span><i>→</i>
     <span class="edge">Response</span>
 </div>
 
