@@ -4,6 +4,16 @@ return [
     'name' => env('APP_NAME', 'pype'),
     'debug' => (bool) env('APP_DEBUG', false),
 
+    // What `php bin/pype serve` runs:
+    //   'fpm'    PHP's built-in server for development (production: nginx + PHP-FPM, nothing to set)
+    //   'swoole' a long-running OpenSwoole server that boots the app once and serves production
+    //            directly. Needs the openswoole extension; code changes need a restart.
+    'server' => env('APP_SERVER', 'fpm'),
+    'swoole' => [
+        'workers' => env('SWOOLE_WORKERS'),   // default: 2 per CPU core
+        'max_request' => 10000,               // recycle each worker after this many requests
+    ],
+
     // Where View templates live (relative to the project root).
     'views' => 'resources/views',
 

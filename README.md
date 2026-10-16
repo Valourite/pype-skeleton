@@ -65,11 +65,13 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `'auth'` / `new Authenticate(...)`  | require a user, found by guards (session, bearer token, or your own)    |
 | `'web'`                             | session cookie + CSRF check + validation errors back to the form         |
 | `Pype\Auth\Auth`                    | `createUser`, `attempt`, `issueToken`, `revoke`, `revokeAll`            |
-| `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`)                         |
+| `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`); counters in the database or APCu (`RATE_LIMIT_DRIVER`) |
 | `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success                  |
 | `new RequestId()`                   | `X-Request-Id` on every response                                        |
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
+| `new MethodOverride()` (global)     | forms send PUT/PATCH/DELETE via a hidden `_method` field                |
+| `new RedirectOnSuccess($to, $msg)`  | reuse an API handler from a form: redirect + flash on success           |
 
 ## Two ways in: pages and JSON
 
@@ -107,8 +109,9 @@ form post is CSRF-checked.
 
 ## Database
 
-SQLite by default (`database/database.sqlite`, WAL mode for fast concurrent reads). MySQL and
-Postgres are configured in `config/database.php`. Type-hint `Pype\Database\Connection` anywhere:
+SQLite by default (`database/database.sqlite`, WAL mode for fast concurrent reads). Switch to
+MySQL or Postgres with `DB_CONNECTION=mysql|pgsql` in `.env` (see `.env.example` for every
+setting). Type-hint `Pype\Database\Connection` anywhere:
 
 ```php
 $db->table('users')->where('id', $id)->as(User::class)->first();
@@ -122,7 +125,50 @@ $db->select('SELECT * FROM users WHERE email LIKE ?', ['%@example.com']);
 $db->transaction(fn (Connection $db) => ...);
 ```
 
-Migrations are plain `.sql` files in `database/migrations`, applied in filename order.
+Migrations live in `database/migrations` and run in filename order. `make:migration` writes a
+PHP migration using the schema builder, which produces the right SQL for SQLite, MySQL and Postgres:
+
+```php
+return new class extends Migration {
+    public function up(Schema $schema): void
+    {
+        $schema->create('posts', function (Table $t) {
+            $t->id();
+            $t->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $t->string('title');
+            $t->text('body')->nullable();
+            $t->boolean('published')->default(false);
+            $t->timestamps();
+            $t->index(['user_id', 'created_at']);
+        });
+    }
+};
+```
+
+Columns: `id`, `foreignId`, `string`, `text`, `integer`, `bigInteger`, `boolean`, `decimal`,
+`date`, `timestamp`, `timestamps`, `json`. Modifiers: `nullable`, `default`, `useCurrent`,
+`unique`, `primary`, `index`, `check`, `constrained`. `$schema->table(...)` adds/renames/drops
+columns and indexes, and `$schema->raw($sql)` runs anything else. Prefer plain SQL? `make:migration
+add_search_view --sql` writes a `.sql` file instead; both kinds can sit side by side.
+
+Migrations are forward-only: to change something, add a new migration.
+
+## Running in production
+
+The default is nothing special: point nginx (or Apache) at `public/` with PHP-FPM.
+
+Or let OpenSwoole serve the app: it boots once and keeps it in memory, skipping PHP-FPM's
+per-request start-up. Install the extension (`pecl install openswoole`), then:
+
+```bash
+APP_SERVER=swoole php bin/pype serve --host=0.0.0.0 --port=8080 --workers=8
+```
+
+It serves `public/` files too, so no nginx is needed (put one in front for TLS if you like).
+Workers handle one request at a time, so your code runs exactly as under PHP-FPM. Two
+differences: code changes need a restart, and anything you store in a static variable or
+singleton outlives the request. Keep per-request data on the `Request` (its context), as
+pype's own stages do.
 
 ## Outlets
 
@@ -161,7 +207,7 @@ Errors on HTML routes render `errors/{status}.php`, falling back to `errors/erro
 app/          your code: Stages, Handlers, Views, Providers, Data
 bootstrap/    builds the Application
 config/       plain PHP arrays (app, auth, database, session)
-database/     migrations/*.sql and the SQLite file
+database/     migrations/*.php and the SQLite file
 public/       web root (index.php, css/)
 resources/    views/
 routes/       web.php (pages, sessions) and api.php (JSON, tokens)
