@@ -31,6 +31,7 @@ return [
         Pype\Auth\AuthProvider::class,
         Pype\Session\SessionProvider::class,
         Pype\View\ViewProvider::class,
+        Pype\Mail\MailProvider::class,
         App\Providers\AppProvider::class,
     ],
 ];

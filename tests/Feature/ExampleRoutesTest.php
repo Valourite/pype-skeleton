@@ -103,4 +103,16 @@ final class ExampleRoutesTest extends TestCase
         $this->assertSame(405, $res->status());
         $this->assertSame(['GET'], $res->json('error.allowed'));
     }
+
+    public function test_registering_sends_a_welcome_email(): void
+    {
+        $this->client->post('/auth/register', ['name' => 'Grace', 'email' => 'grace@mail.test', 'password' => 'correct-horse']);
+
+        $sent = $this->app->container->get(\Pype\Mail\Transport::class)->messages();
+        $this->assertCount(1, $sent);
+        $this->assertSame([['grace@mail.test', 'Grace']], $sent[0]->recipients());
+        $this->assertSame('Welcome, Grace', $sent[0]->getSubject());
+        $this->assertStringContainsString('Welcome, Grace!', (string) $sent[0]->getHtml());
+        $this->assertStringContainsString('http://localhost:8000/', (string) $sent[0]->getText(), 'absolute link in the text part');
+    }
 }

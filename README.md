@@ -139,6 +139,31 @@ $router->post('/register', [
   `Pype\Validation\Rule`. Scope database rules with objects: `new Unique('categories', 'name', where: ['user_id' => $user->id])`.
 - **A regex containing `|`** must use the array form: `['regex:/^(cat|dog)$/']`.
 
+## Mail
+
+```php
+fn (Mailer $mailer, User $user) => $mailer->send(
+    Message::to($user->email, $user->name)
+        ->subject('Your receipt')
+        ->view('emails/receipt', ['user' => $user])   // resources/views/emails/receipt.php
+        ->attach($pdfPath),
+);
+```
+
+For emails sent from several places, write a class (see `app/Mail/WelcomeMail.php`) and send
+`new WelcomeMail($user)`. A plain-text version is made from the HTML unless you call `->text()`.
+
+`$mailer->later(...)` sends after the response has reached the browser (under PHP-FPM and
+OpenSwoole), so a slow mail server never slows the page; failures are logged.
+`$mailer->send(...)` sends now and throws `Pype\Mail\MailException` if it can't.
+
+Configure with the usual variables: `MAIL_DRIVER=smtp`, `MAIL_HOST`, `MAIL_PORT`,
+`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION` (tls/ssl/none), `MAIL_FROM_ADDRESS`. The
+default `MAIL_DRIVER=log` writes emails to the log (see them in the log viewer); tests use
+`array` and read them with `$app->container->get(Pype\Mail\Transport::class)->messages()`. To see
+emails rendered locally, run [Mailpit](https://mailpit.axllent.org) and use `MAIL_HOST=127.0.0.1`,
+`MAIL_PORT=1025`, `MAIL_ENCRYPTION=none`. Sending goes through PHPMailer.
+
 ## Logs and errors
 
 Inject the logger anywhere (it's PSR-3, so Monolog-style calls work):
