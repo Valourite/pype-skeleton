@@ -26,6 +26,7 @@ return [
     // Providers wire services, stacks, global stages and outlets into the app.
     // Composer packages can ship their own Provider; list it here to enable it.
     'providers' => [
+        Pype\Log\LogProvider::class,       // first, so it logs everything after it
         Pype\Database\DatabaseProvider::class,
         Pype\Auth\AuthProvider::class,
         Pype\Session\SessionProvider::class,

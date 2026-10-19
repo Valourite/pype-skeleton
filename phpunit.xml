@@ -13,5 +13,7 @@
         <ini name="error_log" value="/dev/null"/>
         <env name="DB_CONNECTION" value="sqlite" force="true"/>
         <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="LOG_PATH" value="storage/logs/testing"/>
+        <env name="LOG_REQUESTS" value="false"/>
     </php>
 </phpunit>

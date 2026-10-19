@@ -107,6 +107,33 @@ Forms in templates:
 A session cookie only authenticates routes in the `'web'` stack, so every cookie-authenticated
 form post is CSRF-checked.
 
+## Logs and errors
+
+Inject the logger anywhere (it's PSR-3, so Monolog-style calls work):
+
+```php
+fn (Psr\Log\LoggerInterface $log, User $user) => $log->warning('Card declined for {user}', ['user' => $user->id]);
+```
+
+Entries go to `storage/logs/pype-YYYY-MM-DD.log`, one JSON line each, tagged with the request id
+so everything from one request can be found together. Unexpected errors are logged
+automatically, and in development each request gets a line too (`GET /expenses 200 3.1 ms`).
+
+**Sending logs elsewhere:** set `LOG_FORWARD=stderr` (or `stdout`, `syslog`) and a log agent
+or your platform picks the JSON lines up for Datadog, Loki, Papertrail and the like. For a
+service with a PHP SDK, put a PSR-3 logger class in `log.forward` in `config/log.php` (for
+example Monolog with a Sentry handler) and raise `LOG_FORWARD_LEVEL` to `warning` so only
+problems are sent. The file is always written too, so the viewer and error page keep working.
+
+**Log viewer:** open `/_pype/logs` while `APP_DEBUG=true` for a live view (new entries appear
+within a second) with filters for level, request id and text. It's off in production unless you
+enable it and guard it with stages in `config/log.php` (`'stages' => ['web', 'auth', EnsureAdmin::class]`).
+
+**Error page:** with `APP_DEBUG=true`, an unexpected error in the browser shows the exception,
+the code around each line of the trace, the route and its stages, the request (passwords,
+tokens and cookies hidden), and the log lines from that request. API clients still get JSON, and
+production shows a plain error.
+
 ## Links
 
 Name the routes you link to, then build links with `url()` instead of writing paths by hand:
