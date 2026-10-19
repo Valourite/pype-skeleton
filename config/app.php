@@ -10,6 +10,10 @@ return [
     // Secret for signed URLs. `php bin/pype key:generate` sets it (create-project already did).
     'key' => env('APP_KEY', ''),
 
+    // After changing APP_KEY, list the old one here (comma-separated in .env) so data encrypted
+    // with it still decrypts. Signed links made with the old key stop working.
+    'previous_keys' => array_values(array_filter(explode(',', (string) env('APP_PREVIOUS_KEYS', '')))),
+
     // What `php bin/pype serve` runs:
     //   'fpm'    PHP's built-in server for development (production: nginx + PHP-FPM, nothing to set)
     //   'swoole' a long-running OpenSwoole server that boots the app once and serves production

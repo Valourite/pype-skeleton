@@ -74,4 +74,32 @@ final class WebAuthTest extends TestCase
         $token = $api->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'correct-horse'])->json('data.token.token');
         $this->assertSame('Ada', $api->withHeaders(['Authorization' => "Bearer {$token}"])->get('/me')->json('data.name'));
     }
+
+    public function test_remember_me_keeps_you_signed_in_after_the_session_ends(): void
+    {
+        $this->client->post('/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token('/register')]);
+        $this->client->post('/logout', ['_token' => $this->token('/account')]);
+
+        $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'correct-horse', 'remember' => '1', '_token' => $this->token('/login')]);
+        $cookie = $this->client->cookies()->get('pype_remember');
+        $this->assertNotNull($cookie);
+
+        // Days later: the session is gone, the remember cookie isn't.
+        $later = new \Pype\Testing\TestClient($this->app);
+        $later->cookies()->set('pype_remember', $cookie);
+        $this->assertSame(200, $later->get('/account')->status());
+
+        // Signing out there forgets this device.
+        $later->post('/logout', ['_token' => $this->tokenFor($later, '/account')]);
+        $again = new \Pype\Testing\TestClient($this->app);
+        $again->cookies()->set('pype_remember', $cookie);
+        $this->assertSame('/login', $again->get('/account')->header('Location'));
+    }
+
+    private function tokenFor(\Pype\Testing\TestClient $client, string $page): string
+    {
+        preg_match('/name="_token" value="([0-9a-f]{64})"/', $client->get($page)->body(), $m);
+
+        return $m[1];
+    }
 }

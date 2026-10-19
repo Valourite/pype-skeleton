@@ -7,6 +7,7 @@ namespace App\Handlers\Web;
 use Pype\Auth\Auth;
 use Pype\Auth\SessionGuard;
 use Pype\Exceptions\HttpException;
+use Pype\Http\Request;
 use Pype\Http\Response;
 use Pype\Session\Session;
 use Pype\Validation\ValidatedInput;
@@ -17,12 +18,12 @@ use Pype\Validation\ValidatedInput;
  */
 final class Login
 {
-    public function __invoke(ValidatedInput $input, Auth $auth, SessionGuard $guard, Session $session): Response
+    public function __invoke(ValidatedInput $input, Auth $auth, SessionGuard $guard, Session $session, Request $request): Response
     {
         $user = $auth->attempt($input->get('email'), $input->get('password'))
             ?? throw HttpException::unprocessable(['email' => ['These credentials do not match our records.']]);
 
-        $guard->login($session, $user);
+        $guard->login($session, $user, remember: (bool) $input->get('remember'), userAgent: $request->header('user-agent'));
 
         return Response::redirect($guard->intended($session, url('account')), 303);
     }

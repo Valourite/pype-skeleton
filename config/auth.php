@@ -26,4 +26,11 @@ return [
     // least time between two links for the same user (seconds).
     'reset_ttl' => 60,
     'reset_throttle' => 60,
+
+    // "Remember me": a cookie that signs the user back in on this device after their session ends.
+    // Set remember_table to null to turn it off.
+    'remember_table' => 'remember_tokens',
+    'remember_days' => 30,
+    'remember_cookie' => 'pype_remember',
+    'remember_secure' => (bool) env('SESSION_SECURE', false),   // HTTPS-only cookie in production
 ];

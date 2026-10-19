@@ -38,7 +38,7 @@ $router->group('/', ['web'], function (Router $router) {
     $router->get('/register', [new View('auth/register')])->name('register');
 
     $router->group('/', [new Throttle(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
-        $router->post('/login', [new Validate(['email' => 'required|email', 'password' => 'required|string']), Login::class]);
+        $router->post('/login', [new Validate(['email' => 'required|email', 'password' => 'required|string', 'remember' => 'nullable|accepted']), Login::class]);
         $router->post('/register', [
             new Validate(['name' => 'required|string|max:100', 'email' => 'required|email|unique:users', 'password' => 'required|string|min:8'], messages: ['email.unique' => 'That email is already registered.']),
             Register::class,

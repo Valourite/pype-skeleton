@@ -154,7 +154,27 @@ easy to get wrong are in the framework:
   with a "send it again" button. To require a verified email for some pages, add
   `new Pype\Auth\EnsureEmailIsVerified(redirectTo: '/account')` to their group (API clients get a 403).
 
-Settings in `config/auth.php`: `reset_ttl` (minutes), `reset_throttle` (seconds).
+- **Remember me:** the login checkbox keeps a device signed in for 30 days after its session
+  ends. Each device has its own row in `remember_tokens` (only a hash of the cookie's secret), the
+  cookie is swapped on every use, a replayed old copy signs out all remembered devices, and
+  logging out or resetting the password forgets them.
+
+Settings in `config/auth.php`: `reset_ttl` (minutes), `reset_throttle` (seconds),
+`remember_table` (null turns "remember me" off), `remember_days`.
+
+## Encryption
+
+For data you must read back (a user's OAuth tokens, an API key you store for them):
+
+```php
+fn (Pype\Security\Encrypter $encrypter) => $db->table('integrations')->insert([
+    'user_id' => $user->id,
+    'token' => $encrypter->encrypt($oauthToken),   // decrypt() throws if it was changed
+]);
+```
+
+It uses libsodium with your `APP_KEY`. After changing the key, put the old one in
+`APP_PREVIOUS_KEYS` so existing values still decrypt. Passwords are hashed, never encrypted.
 
 ## Mail
 

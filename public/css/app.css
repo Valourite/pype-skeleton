@@ -181,3 +181,6 @@ p { margin: 0 0 1rem; }
 /* A notice with a button beside it (e.g. "confirm your email · Send it again"). */
 .notice.with-action { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .notice.with-action form { margin: 0; }
+
+.checkbox { display: flex; align-items: center; gap: .5rem; font-size: .925rem; cursor: pointer; }
+.checkbox input { width: 1rem; height: 1rem; margin: 0; }
