@@ -155,7 +155,16 @@ Migrations are forward-only: to change something, add a new migration.
 
 ## Running in production
 
-The default is nothing special: point nginx (or Apache) at `public/` with PHP-FPM.
+The default is nothing special: point nginx (or Apache) at `public/` with PHP-FPM. On each
+deploy, after `composer install --no-dev --classmap-authoritative`, run:
+
+```bash
+php bin/pype optimize      # compiles the route tables to bootstrap/cache/routes.php
+```
+
+PHP-FPM then reads the compiled tables (kept in memory by opcache) instead of rebuilding them on
+every request. Forgetting it after a route change is safe: pype notices the file no longer
+matches and builds the tables itself. `php bin/pype optimize:clear` removes it.
 
 Or let OpenSwoole serve the app: it boots once and keeps it in memory, skipping PHP-FPM's
 per-request start-up. Install the extension (`pecl install openswoole`), then:
