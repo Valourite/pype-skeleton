@@ -3,12 +3,18 @@
 declare(strict_types=1);
 
 use App\Handlers\ShowUser;
+use App\Handlers\Web\ForgotPassword;
 use App\Handlers\Web\Login;
 use App\Handlers\Web\Logout;
 use App\Handlers\Web\Register;
+use App\Handlers\Web\ResendVerification;
+use App\Handlers\Web\ResetPassword;
+use App\Handlers\Web\VerifyEmail;
 use App\Stages\FindUser;
 use App\Views\UserProfile;
 use Pype\Auth\Authenticate;
+use Pype\Auth\PasswordResets;
+use Pype\Routing\ValidateSignature;
 use Pype\Routing\Router;
 use Pype\Stages\Throttle;
 use Pype\Validation\Validate;
@@ -39,9 +45,28 @@ $router->group('/', ['web'], function (Router $router) {
         ]);
     });
 
+    // Forgotten password: email a one-time link (Pype\Auth\PasswordResets keeps it safe), then
+    // a form for the new password. Throttled so the form can't be used to spam an inbox.
+    $router->get('/password/forgot', [new View('auth/forgot')])->name('password.forgot');
+    $router->post('/password/forgot', [new Throttle(maxAttempts: 5, decaySeconds: 60), new Validate(['email' => 'required|email']), ForgotPassword::class])->name('password.email');
+    $router->get('/password/reset/{token}', [fn (string $token, PasswordResets $resets) => ['token' => $token, 'valid' => $resets->valid($token)], new View('auth/reset')])->name('password.reset');
+    $router->post('/password/reset', [
+        new Throttle(maxAttempts: 10, decaySeconds: 60),
+        new Validate(['token' => 'required|string', 'password' => 'required|string|min:8|confirmed']),
+        ResetPassword::class,
+    ])->name('password.update');
+
+    // The link from the welcome email. Signed (can't be edited or reused after a day) and tied
+    // to the address; works without being signed in.
+    $router->get('/email/verify/{id}/{hash}', [new ValidateSignature(), VerifyEmail::class])->name('verification.verify');
+
     // Signed in only. Browsers without a session are sent to /login and brought back after.
     $router->group('/', [new Authenticate(redirectTo: '/login')], function (Router $router) {
         $router->get('/account', [fn (App\Data\User $user) => ['user' => $user], new View('account')])->name('account');
         $router->post('/logout', [Logout::class])->name('logout');
+        $router->post('/email/verification-notification', [new Throttle(maxAttempts: 3, decaySeconds: 60), ResendVerification::class])->name('verification.send');
+
+        // To require a verified email for some pages, add a stage to their group:
+        //   new Pype\Auth\EnsureEmailIsVerified(redirectTo: '/account')
     });
 });

@@ -10,5 +10,5 @@
         <button type="submit" class="button">Sign in</button>
     </form>
 
-    <p class="muted small">No account? <a href="<?= url('register') ?>">Create one</a>.</p>
+    <p class="muted small"><a href="<?= url('password.forgot') ?>">Forgot your password?</a> · No account? <a href="<?= url('register') ?>">Create one</a>.</p>
 </div>

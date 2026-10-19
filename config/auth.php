@@ -21,4 +21,9 @@ return [
     // API tokens: table name and lifetime in minutes (null = never expire).
     'tokens_table' => 'api_tokens',
     'token_ttl' => 60 * 24 * 30,
+
+    // Password reset links (Pype\Auth\PasswordResets): how long a link works (minutes), and the
+    // least time between two links for the same user (seconds).
+    'reset_ttl' => 60,
+    'reset_throttle' => 60,
 ];

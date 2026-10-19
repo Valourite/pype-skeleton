@@ -139,6 +139,23 @@ $router->post('/register', [
   `Pype\Validation\Rule`. Scope database rules with objects: `new Unique('categories', 'name', where: ['user_id' => $user->id])`.
 - **A regex containing `|`** must use the array form: `['regex:/^(cat|dog)$/']`.
 
+## Forgotten passwords and email verification
+
+Both flows are app code you can change (routes in `routes/web.php`, handlers in
+`app/Handlers/Web`, emails in `app/Mail`, pages in `resources/views/auth`). The parts that are
+easy to get wrong are in the framework:
+
+- **Password reset:** `/password/forgot` emails a link; `/password/reset/{token}` sets a new
+  password. `Pype\Auth\PasswordResets` stores only a hash of the token, accepts it once and for
+  60 minutes, sends at most one link a minute per user, and revokes the user's API tokens after a
+  reset. The form answers the same whether or not the email has an account.
+- **Email verification:** the welcome email links to a signed URL (`ValidateSignature`, valid
+  for a day, tied to the address so changing the email voids it). `/account` shows a reminder
+  with a "send it again" button. To require a verified email for some pages, add
+  `new Pype\Auth\EnsureEmailIsVerified(redirectTo: '/account')` to their group (API clients get a 403).
+
+Settings in `config/auth.php`: `reset_ttl` (minutes), `reset_throttle` (seconds).
+
 ## Mail
 
 ```php

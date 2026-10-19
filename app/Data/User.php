@@ -14,6 +14,7 @@ final class User
         public readonly string $name,
         public readonly string $email,
         public readonly ?string $created_at = null,
+        public readonly ?string $email_verified_at = null,
     ) {
     }
 }

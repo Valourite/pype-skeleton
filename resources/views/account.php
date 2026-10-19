@@ -3,11 +3,22 @@
 $this->layout('layouts/app', ['title' => 'Account']);
 ?>
 <?= $this->partial('partials/status') ?>
+<?php if ($user->email_verified_at === null): ?>
+    <div class="notice with-action">
+        <span>Please confirm your email address: we sent a link to <?= e($user->email) ?>.</span>
+        <form method="post" action="<?= url('verification.send') ?>">
+            <?= $this->csrf() ?>
+            <button type="submit" class="button secondary">Send it again</button>
+        </form>
+    </div>
+<?php endif ?>
 <div class="card">
     <h1><?= e($user->name) ?></h1>
     <dl class="meta">
         <dt>Email</dt>
         <dd><?= e($user->email) ?></dd>
+        <dt>Verified</dt>
+        <dd><?= $user->email_verified_at === null ? 'Not yet' : e(date('j F Y', strtotime($user->email_verified_at))) ?></dd>
         <dt>Member since</dt>
         <dd><?= e(date('j F Y', strtotime($user->created_at))) ?></dd>
     </dl>
