@@ -66,7 +66,7 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `'web'`                             | session cookie + CSRF check + validation errors back to the form         |
 | `Pype\Auth\Auth`                    | `createUser`, `attempt`, `issueToken`, `revoke`, `revokeAll`            |
 | `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`); counters in the database or APCu (`RATE_LIMIT_DRIVER`) |
-| `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success                  |
+| `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success (see Validation) |
 | `new RequestId()`                   | `X-Request-Id` on every response                                        |
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
@@ -106,6 +106,38 @@ Forms in templates:
 
 A session cookie only authenticates routes in the `'web'` stack, so every cookie-authenticated
 form post is CSRF-checked.
+
+## Validation
+
+Validate as the first stage of a route. Bad input is a 422 (or, in the `'web'` stack, back to
+the form with errors); good input arrives as `ValidatedInput`:
+
+```php
+$router->post('/register', [
+    new Validate([
+        'name' => 'required|string|max:100',
+        'email' => 'required|email|unique:users',
+        'password' => 'required|string|min:8|confirmed',
+        'terms' => 'accepted',
+    ], messages: ['email.unique' => 'That email is already registered.']),
+    Register::class,
+]);
+```
+
+| Kind | Rules |
+|---|---|
+| Presence | `required`, `nullable`, `required_if:type,company`, `required_with:password` |
+| Types | `string`, `int`, `numeric`, `bool`, `array`, `accepted`, `json` |
+| Size | `min:n`, `max:n`, `between:a,b` (length, value, item count, or KB for files), `digits:n` |
+| Format | `email`, `url`, `ip`, `uuid`, `alpha`, `alpha_num`, `alpha_dash`, `regex:/.../`, `date`, `date:d/m/Y` |
+| Compare | `in:a,b`, `not_in:a,b`, `same:field`, `different:field`, `confirmed`, `before:` / `after:` / `before_or_equal:` / `after_or_equal:` (a date, `today`, or another field) |
+| Files | `file`, `image`, `mimes:pdf,jpg` (the real type, not what the browser claims) |
+| Database | `unique:users,email`, `exists:categories,id`; `{id}` is the route param, so `unique:users,email,{id}` lets an edit form keep its own email |
+
+- **Arrays:** `'tags.*' => 'string|max:20'`, `'items.*.qty' => 'required|int|min:1'`; errors are keyed `items.0.qty`.
+- **Your own rules:** a closure `fn ($value, $field, $data) => $ok ? null : 'message'`, or a class implementing
+  `Pype\Validation\Rule`. Scope database rules with objects: `new Unique('categories', 'name', where: ['user_id' => $user->id])`.
+- **A regex containing `|`** must use the array form: `['regex:/^(cat|dog)$/']`.
 
 ## Logs and errors
 

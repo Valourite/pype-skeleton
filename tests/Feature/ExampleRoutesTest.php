@@ -41,7 +41,7 @@ final class ExampleRoutesTest extends TestCase
 
         $dupe = $this->client->post('/auth/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'another-pass']);
         $this->assertSame(422, $dupe->status());
-        $this->assertArrayHasKey('email', $dupe->json('error.errors'));
+        $this->assertSame(['That email is already registered.'], $dupe->json('error.errors.email'));
     }
 
     public function test_validation_errors(): void

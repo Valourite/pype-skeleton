@@ -34,7 +34,7 @@ $router->group('/', ['web'], function (Router $router) {
     $router->group('/', [new Throttle(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
         $router->post('/login', [new Validate(['email' => 'required|email', 'password' => 'required|string']), Login::class]);
         $router->post('/register', [
-            new Validate(['name' => 'required|string|max:100', 'email' => 'required|email', 'password' => 'required|string|min:8']),
+            new Validate(['name' => 'required|string|max:100', 'email' => 'required|email|unique:users', 'password' => 'required|string|min:8'], messages: ['email.unique' => 'That email is already registered.']),
             Register::class,
         ]);
     });

@@ -22,7 +22,7 @@ $router->get('/health', fn () => ['status' => 'ok'])->name('health');
 
 $router->group('/auth', [new Throttle(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
     $router->post('/register', [
-        new Validate(['name' => 'required|string|max:100', 'email' => 'required|email', 'password' => 'required|string|min:8']),
+        new Validate(['name' => 'required|string|max:100', 'email' => 'required|email|unique:users', 'password' => 'required|string|min:8'], messages: ['email.unique' => 'That email is already registered.']),
         Register::class,
     ]);
 
