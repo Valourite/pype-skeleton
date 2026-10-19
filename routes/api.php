@@ -18,7 +18,7 @@ use Pype\Validation\Validate;
 // JSON endpoints. Clients authenticate with a bearer token from /auth/login; the browser
 // pages in routes/web.php use a session cookie instead. Same users, same stages.
 
-$router->get('/health', fn () => ['status' => 'ok']);
+$router->get('/health', fn () => ['status' => 'ok'])->name('health');
 
 $router->group('/auth', [new Throttle(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
     $router->post('/register', [

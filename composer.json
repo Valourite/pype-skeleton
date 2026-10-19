@@ -27,6 +27,7 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
+            "@php bin/pype key:generate",
             "@php bin/pype migrate"
         ]
     },

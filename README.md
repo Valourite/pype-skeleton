@@ -107,6 +107,42 @@ Forms in templates:
 A session cookie only authenticates routes in the `'web'` stack, so every cookie-authenticated
 form post is CSRF-checked.
 
+## Links
+
+Name the routes you link to, then build links with `url()` instead of writing paths by hand:
+
+```php
+$router->get('/expenses/{id}/edit', [LoadExpense::class, new View('expenses/form')])->name('expenses.edit');
+
+$router->group('/admin', ['auth'], function (Router $r) {
+    $r->get('/users', ListUsers::class)->name('users');           // named admin.users
+}, name: 'admin.');
+```
+
+```php
+url('expenses.edit', ['id' => 3])              // /expenses/3/edit
+url('expenses.index', ['month' => '2026-10'])  // /expenses?month=2026-10 (extra params → query)
+url('home', absolute: true)                    // http://localhost:8000/ (APP_URL)
+Response::redirect(url('dashboard'), 303)
+```
+
+In templates: `<a href="<?= url('expenses.edit', ['id' => $expense->id]) ?>">Edit</a>`. A missing
+param or an unknown name is an error, so a renamed route can't leave broken links behind.
+Prefer injecting a service? `fn (Pype\Routing\Urls $urls) => $urls->to('home')`.
+
+**Signed links** (password reset, email verification, unsubscribe) can't be changed or reused
+after they expire:
+
+```php
+$link = signed_url('password.reset', ['user' => $user->id], expiresIn: 3600);   // absolute
+
+$router->get('/password/reset/{user}', [new ValidateSignature(), ShowResetForm::class])
+    ->name('password.reset');                  // 403 if tampered with or expired
+```
+
+They're signed with `APP_KEY` (HMAC-SHA256), which `create-project` sets for you
+(`php bin/pype key:generate` to make one; `--force` replaces it, which invalidates old links).
+
 ## Database
 
 SQLite by default (`database/database.sqlite`, WAL mode for fast concurrent reads). Switch to

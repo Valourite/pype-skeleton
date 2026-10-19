@@ -20,15 +20,16 @@ use Pype\View\View;
 // every POST/PUT/PATCH/DELETE, and turns validation errors into "back to the form, with
 // errors". An outlet decides how each route's result leaves the pipeline: a View renders HTML.
 $router->group('/', ['web'], function (Router $router) {
-    $router->get('/', [fn (Router $router) => ['routes' => $router->routes()], new View('welcome')]);
+    // Name routes you link to; templates and handlers then use url('name', [...]).
+    $router->get('/', [fn (Router $router) => ['routes' => $router->routes()], new View('welcome')])->name('home');
 
     // Same stages as GET /users/{id} in routes/api.php — only the outlet differs. UserProfile
     // is a class-based view (app/Views): its own template, data shaping and helper methods.
-    $router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, UserProfile::class]);
+    $router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, UserProfile::class])->name('users.profile');
 
     // Guests only see the forms; how you check credentials is up to your handler.
-    $router->get('/login', [new View('auth/login')]);
-    $router->get('/register', [new View('auth/register')]);
+    $router->get('/login', [new View('auth/login')])->name('login');
+    $router->get('/register', [new View('auth/register')])->name('register');
 
     $router->group('/', [new Throttle(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
         $router->post('/login', [new Validate(['email' => 'required|email', 'password' => 'required|string']), Login::class]);
@@ -40,7 +41,7 @@ $router->group('/', ['web'], function (Router $router) {
 
     // Signed in only. Browsers without a session are sent to /login and brought back after.
     $router->group('/', [new Authenticate(redirectTo: '/login')], function (Router $router) {
-        $router->get('/account', [fn (App\Data\User $user) => ['user' => $user], new View('account')]);
-        $router->post('/logout', [Logout::class]);
+        $router->get('/account', [fn (App\Data\User $user) => ['user' => $user], new View('account')])->name('account');
+        $router->post('/logout', [Logout::class])->name('logout');
     });
 });

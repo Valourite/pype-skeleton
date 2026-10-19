@@ -17,5 +17,5 @@ $fallback = match ($status) {
 <div class="error">
     <div class="code"><?= e($status) ?></div>
     <p><?= e($error['message'] ?? $fallback) ?></p>
-    <a href="/">← Back home</a>
+    <a href="<?= url('home') ?>">← Back home</a>
 </div>

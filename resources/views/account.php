@@ -12,7 +12,7 @@ $this->layout('layouts/app', ['title' => 'Account']);
         <dd><?= e(date('j F Y', strtotime($user->created_at))) ?></dd>
     </dl>
 
-    <form method="post" action="/logout" class="inline-form">
+    <form method="post" action="<?= url('logout') ?>" class="inline-form">
         <?= $this->csrf() ?>
         <button type="submit" class="button secondary">Sign out</button>
     </form>

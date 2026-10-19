@@ -3,12 +3,12 @@
     <h1>Sign in</h1>
     <?= $this->partial('partials/status') ?>
 
-    <form method="post" action="/login" class="form">
+    <form method="post" action="<?= url('login') ?>" class="form">
         <?= $this->csrf() ?>
         <?= $this->partial('partials/field', ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'autocomplete' => 'email']) ?>
         <?= $this->partial('partials/field', ['name' => 'password', 'label' => 'Password', 'type' => 'password', 'autocomplete' => 'current-password']) ?>
         <button type="submit" class="button">Sign in</button>
     </form>
 
-    <p class="muted small">No account? <a href="/register">Create one</a>.</p>
+    <p class="muted small">No account? <a href="<?= url('register') ?>">Create one</a>.</p>
 </div>

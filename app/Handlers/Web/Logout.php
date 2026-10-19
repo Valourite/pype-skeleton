@@ -15,6 +15,6 @@ final class Logout
         $guard->logout($session);
         $session->flash('status', 'You have been signed out.');
 
-        return Response::redirect('/login', 303);
+        return Response::redirect(url('login'), 303);
     }
 }

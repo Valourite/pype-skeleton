@@ -4,6 +4,12 @@ return [
     'name' => env('APP_NAME', 'pype'),
     'debug' => (bool) env('APP_DEBUG', false),
 
+    // Base for absolute links (url(..., absolute: true), signed_url()), e.g. https://example.com
+    'url' => env('APP_URL', 'http://localhost:8000'),
+
+    // Secret for signed URLs. `php bin/pype key:generate` sets it (create-project already did).
+    'key' => env('APP_KEY', ''),
+
     // What `php bin/pype serve` runs:
     //   'fpm'    PHP's built-in server for development (production: nginx + PHP-FPM, nothing to set)
     //   'swoole' a long-running OpenSwoole server that boots the app once and serves production

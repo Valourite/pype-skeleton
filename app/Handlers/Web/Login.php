@@ -24,6 +24,6 @@ final class Login
 
         $guard->login($session, $user);
 
-        return Response::redirect($guard->intended($session, '/account'), 303);
+        return Response::redirect($guard->intended($session, url('account')), 303);
     }
 }

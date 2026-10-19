@@ -2,7 +2,7 @@
 <div class="auth-card card">
     <h1>Create account</h1>
 
-    <form method="post" action="/register" class="form">
+    <form method="post" action="<?= url('register') ?>" class="form">
         <?= $this->csrf() ?>
         <?= $this->partial('partials/field', ['name' => 'name', 'label' => 'Name', 'autocomplete' => 'name']) ?>
         <?= $this->partial('partials/field', ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'autocomplete' => 'email']) ?>
@@ -10,5 +10,5 @@
         <button type="submit" class="button">Create account</button>
     </form>
 
-    <p class="muted small">Already registered? <a href="/login">Sign in</a>.</p>
+    <p class="muted small">Already registered? <a href="<?= url('login') ?>">Sign in</a>.</p>
 </div>

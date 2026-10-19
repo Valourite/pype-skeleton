@@ -23,6 +23,6 @@ final class Register
         $guard->login($session, $auth->createUser($input->all()));
         $session->flash('status', 'Welcome aboard!');
 
-        return Response::redirect('/account', 303);
+        return Response::redirect(url('account'), 303);
     }
 }

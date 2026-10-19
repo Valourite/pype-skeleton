@@ -19,11 +19,11 @@ $appName = env('APP_NAME', 'pype');
 <body>
     <header class="site-header">
         <div class="container">
-            <a class="brand" href="/"><span class="brand-mark">p</span><?= e($appName) ?></a>
+            <a class="brand" href="<?= url('home') ?>"><span class="brand-mark">p</span><?= e($appName) ?></a>
             <nav class="nav">
-                <a href="/">Home</a>
-                <a href="/account">Account</a>
-                <a href="/health">API</a>
+                <a href="<?= url('home') ?>">Home</a>
+                <a href="<?= url('account') ?>">Account</a>
+                <a href="<?= url('health') ?>">API</a>
                 <a href="https://github.com/Valourite/pype-framework">Docs</a>
             </nav>
         </div>
