@@ -15,4 +15,9 @@ return new class extends Migration {
             $t->timestamp('created_at')->useCurrent();
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('users');
+    }
 };

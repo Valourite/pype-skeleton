@@ -14,4 +14,9 @@ return new class extends Migration {
             $t->bigInteger('created_at');
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('password_resets');
+    }
 };

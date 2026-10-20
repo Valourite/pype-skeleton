@@ -14,4 +14,9 @@ return new class extends Migration {
             $t->bigInteger('reset_at');
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('rate_limits');
+    }
 };

@@ -14,4 +14,9 @@ return new class extends Migration {
             $t->bigInteger('expires_at')->nullable()->index();
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('cache');
+    }
 };

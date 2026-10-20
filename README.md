@@ -444,16 +444,35 @@ return new class extends Migration {
             $t->index(['user_id', 'created_at']);
         });
     }
+
+    public function down(Schema $schema): void   // undoes up(), for migrate:rollback
+    {
+        $schema->dropIfExists('posts');
+    }
 };
 ```
 
 Columns: `id`, `foreignId`, `string`, `text`, `integer`, `bigInteger`, `boolean`, `decimal`,
-`date`, `timestamp`, `timestamps`, `json`. Modifiers: `nullable`, `default`, `useCurrent`,
+`date`, `timestamp`, `timestamps`, `json`, `longText`. Modifiers: `nullable`, `default`, `useCurrent`,
 `unique`, `primary`, `index`, `check`, `constrained`. `$schema->table(...)` adds/renames/drops
 columns and indexes, and `$schema->raw($sql)` runs anything else. Prefer plain SQL? `make:migration
-add_search_view --sql` writes a `.sql` file instead; both kinds can sit side by side.
+add_search_view --sql` writes a `.sql` file instead; both kinds can sit side by side. In a
+`.sql` file, the SQL after a `-- down` line undoes the part above it.
 
-Migrations are forward-only: to change something, add a new migration.
+```bash
+php bin/pype migrate                  # run what's pending (one "batch")
+php bin/pype migrate:rollback         # undo the last batch, newest first
+php bin/pype migrate:rollback --step=1  # or just the last migration (any number)
+php bin/pype migrate:status           # what ran, in which batch
+php bin/pype migrate:fresh            # drop every table and migrate again (development)
+```
+
+A migration without `down()` (or a `-- down` section) can't be rolled back: rollback stops
+there and says so. `migrate:fresh` doesn't need `down()`, and refuses to run when `APP_DEBUG`
+is off unless you add `--force`. On MySQL each schema change is committed as it runs, so a
+migration that fails halfway may leave part of its changes behind; SQLite and Postgres undo the
+whole file. Once a migration has run in production, change things with a new migration rather
+than rolling back: rolling back drops data.
 
 ## Running in production
 

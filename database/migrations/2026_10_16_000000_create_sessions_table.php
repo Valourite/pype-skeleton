@@ -14,4 +14,9 @@ return new class extends Migration {
             $t->bigInteger('expires_at')->index('sessions_expires_at');
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('sessions');
+    }
 };

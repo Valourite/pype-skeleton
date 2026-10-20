@@ -21,4 +21,9 @@ return new class extends Migration {
             $t->string('user_agent')->nullable();
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('remember_tokens');
+    }
 };

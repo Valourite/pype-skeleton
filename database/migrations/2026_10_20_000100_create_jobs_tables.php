@@ -29,4 +29,10 @@ return new class extends Migration {
             $t->bigInteger('failed_at');
         });
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->dropIfExists('failed_jobs');
+        $schema->dropIfExists('jobs');
+    }
 };

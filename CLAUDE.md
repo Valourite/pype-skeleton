@@ -33,7 +33,8 @@ everything a developer uses. Framework internals and design rules are in the fra
   - use `$db->table(...)` (query builder) and plain data classes (`->as(Thing::class)`). There
     is no ORM by design;
   - migrations: `php bin/pype make:migration create_things_table` writes a schema-builder
-    migration that runs on SQLite, MySQL and Postgres. Migrations are forward-only.
+    migration that runs on SQLite, MySQL and Postgres, with a `down()` that undoes it
+    (`migrate:rollback`). Once a migration ran in production, change things with a new one.
 - **Background work:** slow or retryable work goes in a job (`php bin/pype make:job Name`,
   `app/Jobs/`), pushed with `Pype\Queue\Queue`; mail with `$mailer->queue(...)`. Recurring
   tasks go in `routes/schedule.php`.

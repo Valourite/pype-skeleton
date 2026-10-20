@@ -5,7 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=8.2",
-        "pype/framework": "^0.6",
+        "pype/framework": "^0.7",
         "phpmailer/phpmailer": "^7.0"
     },
     "require-dev": {

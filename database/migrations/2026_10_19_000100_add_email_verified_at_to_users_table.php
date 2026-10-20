@@ -10,4 +10,9 @@ return new class extends Migration {
         // Set when the user clicks the link in their welcome / verification email.
         $schema->table('users', fn (Table $t) => $t->timestamp('email_verified_at')->nullable());
     }
+
+    public function down(Schema $schema): void
+    {
+        $schema->table('users', fn (Table $t) => $t->dropColumn('email_verified_at'));
+    }
 };
