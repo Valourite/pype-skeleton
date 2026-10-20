@@ -1,8 +1,9 @@
 # Notes for working on a pype app
 
 This app runs on **pype** (`pype/framework`): each route is a pipeline of **stages**, and an
-**outlet** at the end writes the result (JSON by default, HTML via views). `README.md` covers
-everything a developer uses. Framework internals and design rules are in the framework repo
+**outlet** at the end writes the result (JSON by default, HTML via views). The guide to everything pype
+offers, with examples, is `vendor/pype/framework/docs/GUIDE.md`: read the relevant section before
+building something. Framework internals and design rules are in the framework repo
 (`vendor/pype/framework/CLAUDE.md` and `vendor/pype/framework/docs/`).
 
 ## How to build features here
@@ -44,6 +45,33 @@ everything a developer uses. Framework internals and design rules are in the fra
   tasks go in `routes/schedule.php`.
 - **Prefer native PHP** (`password_hash`, `filter_var`, `DateTimeImmutable`, ...) over pulling in
   packages. pype aims to stay fast and feel like PHP.
+
+## Built-ins: check here before writing your own
+
+Each has a section in `vendor/pype/framework/docs/GUIDE.md` with examples. Writing your own
+version of one of these is almost always a mistake.
+
+| Need | Use |
+|---|---|
+| validate input (incl. `unique:`/`exists:`, dates, arrays, conditional) | `new Validate([...])` / a `Validate` subclass; `status:` for 400; `TrimStrings` already runs globally. `min`/`max` inclusive; rules can't see the user (per-user unique: index + handler check) |
+| who the user is | `'auth'` stack (session or API token); `Pype\Auth\JwtGuard` for JWTs; `Authenticate(redirectTo:)` for pages |
+| **records that belong to a user** | load them in a stage and give **404 (not 403) when it isn't theirs**, so ids don't leak; put the record in the context for the handler (GUIDE "Roles, ownership..."). No roles system: admin = a column + a stage |
+| rate limiting | `new Throttle(maxAttempts, decaySeconds)`: per IP + route; per user = a small stage (GUIDE "Roles, ownership and per-user limits") |
+| signed links, named routes | `url('name', [...])`, `signed_url(...)` + `ValidateSignature` |
+| cache | `Pype\Cache\Cache`: `remember`, locks, `stale()`; per-user data in `group("user.{$id}")`, **flush the group after every write** to that user's data |
+| mail | `Mailer::send()`, `later()` (after the response), `queue()` (worker, retries: only off the request with `QUEUE_DRIVER=database` + `queue:work`; the default `sync` sends at once) |
+| background jobs, cron | `Pype\Queue\Queue` (`make:job`), `routes/schedule.php` |
+| encrypt a value | `Pype\Security\Encrypter` |
+| inserts | `insert()` (id), `insertReturning([...], ['id', 'created_at'])`, `insertMany()` for bulk |
+| test/demo data | factories + seeders (`make:factory`, `db:seed`) |
+| your API's error wording | `config/app.php` `errors` (pype's own errors only; the keys are listed there) |
+| logging | inject `Psr\Log\LoggerInterface` |
+
+## Testing
+
+`composer test`. Tests extend `Tests\TestCase` (fresh in-memory database per test,
+`$this->client` = `TestClient`). Set up data with factories, not HTTP calls; read sent mail with
+`$this->app->container->get(Pype\Mail\Transport::class)->messages()`. See GUIDE "Testing".
 
 ## Settings
 
