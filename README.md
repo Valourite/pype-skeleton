@@ -68,6 +68,7 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`); counters in the database or APCu (`RATE_LIMIT_DRIVER`) |
 | `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success (see Validation) |
 | `Pype\Cache\Cache`                 | `remember`, locks, background refresh, groups; file, APCu or database (see Cache) |
+| `Pype\Queue\Queue`                 | background jobs: `push`, `later`, retries, `queue:work` (see Queue); `routes/schedule.php` for cron tasks |
 | `new RequestId()`                   | `X-Request-Id` on every response                                        |
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
@@ -259,6 +260,92 @@ With `file` under OpenSwoole, set `opcache.file_update_protection=0` in php.ini 
 serves cache files a worker wrote itself (safe: files appear by atomic rename). Under PHP-FPM
 nothing is needed.
 
+## Queue
+
+Slow or unreliable work (emails, exports, calls to other services) can run in a **job** outside
+the request. A job is a plain class: its constructor takes the data (ids, strings, arrays; no
+services), and `handle()` gets services injected by type, like a route handler:
+
+```php
+final class SendReceipt
+{
+    public int $tries = 3;               // optional (default 1)
+    public array $backoff = [10, 60];    // optional: seconds before each retry
+
+    public function __construct(public readonly int $orderId) {}
+
+    public function handle(Orders $orders, Mailer $mailer): void
+    {
+        $mailer->send(new ReceiptMail($orders->find($this->orderId)));
+    }
+
+    public function failed(Throwable $e): void {}   // optional: after the last try
+}
+
+fn (Queue $queue, Order $order) => $queue->push(new SendReceipt($order->id));   // Pype\Queue\Queue
+$queue->push(new SendReceipt($id), 'mail');         // onto the 'mail' queue
+$queue->later(300, new SendReceipt($id));           // in 5 minutes (seconds or DateInterval)
+$mailer->queue(new WelcomeMail($user));             // email through the queue, 3 tries
+```
+
+`QUEUE_DRIVER=sync` (the default) runs jobs right away, so nothing needs starting while you
+develop. In production set `QUEUE_DRIVER=database` (run `php bin/pype migrate` for the `jobs`
+tables) and keep a worker running:
+
+```bash
+php bin/pype queue:work                          # default queue; Ctrl+C stops after the current job
+php bin/pype queue:work --queue=mail,default     # 'mail' first
+php bin/pype queue:failed                        # jobs that gave up, with their error
+php bin/pype queue:retry 12                      # or: queue:retry all
+php bin/pype queue:restart                       # on deploy: workers stop after their job
+```
+
+Workers are long-running processes, so they need a supervisor that starts them again (they
+stop on `queue:restart`, `--max-jobs`, `--max-time`, `--memory`, or a job running past
+`--timeout`). With systemd:
+
+```ini
+# /etc/systemd/system/myapp-queue.service
+[Service]
+User=www-data
+WorkingDirectory=/var/www/myapp
+ExecStart=/usr/bin/php bin/pype queue:work --max-time=3600
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Run as many workers as you like (a `@` template unit, or several services): each job is
+handed to exactly one of them. Jobs are stored with `serialize()`, so change a job class's
+constructor carefully while old jobs are still waiting.
+
+## Schedule
+
+Recurring tasks live in `routes/schedule.php`:
+
+```php
+$schedule->command('reports:send')->weeklyOn(1, '08:00');           // a bin/pype command
+$schedule->call(fn (SessionStore $s) => $s->gc())->hourly();        // a closure, services injected
+$schedule->job(new SyncRates())->everyFifteenMinutes();             // pushed onto the queue
+$schedule->call(...)->dailyAt('02:00')->withoutOverlapping()->onOneServer();
+```
+
+Frequencies: `everyMinute`, `everyFiveMinutes` (also Ten, Fifteen, Thirty), `hourly`,
+`hourlyAt(17)`, `daily`, `dailyAt('13:00')`, `weekdays()`, `weekly`, `weeklyOn(1, '8:00')`,
+`monthly`, `monthlyOn(15, '6:00')`, or any `cron('*/10 9-17 * * 1-5')`; `timezone()` per task
+or for the whole file. `withoutOverlapping()` skips a run while the last one is still going;
+`onOneServer()` runs it on only one of several servers (needs `CACHE_DRIVER=database`).
+
+One cron line runs it all:
+
+```
+* * * * * cd /var/www/myapp && php bin/pype schedule:run >> /dev/null 2>&1
+```
+
+No cron (a container, your laptop)? `php bin/pype schedule:work` does the same in the
+foreground. `php bin/pype schedule:list` shows every task, and failures go to the log.
+
 ## Logs and errors
 
 Inject the logger anywhere (it's PSR-3, so Monolog-style calls work):
@@ -376,7 +463,10 @@ deploy, after `composer install --no-dev --classmap-authoritative`, run:
 ```bash
 php bin/pype optimize      # compiles the route tables to bootstrap/cache/routes.php
 php bin/pype cache:clear   # if cached data changed shape (not for CACHE_DRIVER=apcu: reload PHP-FPM)
+php bin/pype queue:restart # queue workers pick up the new code
 ```
+
+Also add the scheduler's cron line and a supervised `queue:work` (see Queue and Schedule).
 
 PHP-FPM then reads the compiled tables (kept in memory by opcache) instead of rebuilding them on
 every request. Forgetting it after a route change is safe: pype notices the file no longer

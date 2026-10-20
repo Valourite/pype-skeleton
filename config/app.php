@@ -37,6 +37,7 @@ return [
         Pype\View\ViewProvider::class,
         Pype\Mail\MailProvider::class,
         Pype\Cache\CacheProvider::class,
+        Pype\Queue\QueueProvider::class,
         App\Providers\AppProvider::class,
     ],
 ];

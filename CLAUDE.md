@@ -34,6 +34,9 @@ everything a developer uses. Framework internals and design rules are in the fra
     is no ORM by design;
   - migrations: `php bin/pype make:migration create_things_table` writes a schema-builder
     migration that runs on SQLite, MySQL and Postgres. Migrations are forward-only.
+- **Background work:** slow or retryable work goes in a job (`php bin/pype make:job Name`,
+  `app/Jobs/`), pushed with `Pype\Queue\Queue`; mail with `$mailer->queue(...)`. Recurring
+  tasks go in `routes/schedule.php`.
 - **Prefer native PHP** (`password_hash`, `filter_var`, `DateTimeImmutable`, ...) over pulling in
   packages. pype aims to stay fast and feel like PHP.
 
@@ -41,7 +44,7 @@ everything a developer uses. Framework internals and design rules are in the fra
 
 Everything switchable is in `.env` (see `.env.example`):
 - `DB_CONNECTION` (sqlite/mysql/pgsql), `SESSION_DRIVER` (database/file);
-- `RATE_LIMIT_DRIVER` (database/apcu), `CACHE_DRIVER` (file/apcu/database/array/null);
+- `RATE_LIMIT_DRIVER` (database/apcu), `CACHE_DRIVER` (file/apcu/database/array/null), `QUEUE_DRIVER` (sync/database);
 - `APP_SERVER` (fpm/swoole), `APP_DEBUG`.
 
 `config/*.php` are plain arrays.
