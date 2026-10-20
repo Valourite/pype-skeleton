@@ -504,6 +504,49 @@ migration that fails halfway may leave part of its changes behind; SQLite and Po
 whole file. Once a migration has run in production, change things with a new migration rather
 than rolling back: rolling back drops data.
 
+## Factories and seeders
+
+**Factories** make rows for tests and demo data, one class per table in `database/factories/`
+(`php bin/pype make:factory Post`):
+
+```php
+final class UserFactory extends Factory
+{
+    protected string $table = 'users';
+    protected ?string $class = User::class;           // create() returns Users (null: arrays)
+
+    protected function definition(Fake $fake): array
+    {
+        return ['name' => $fake->name(), 'email' => $fake->email(), 'password' => self::password()];
+    }
+}
+
+$ada = UserFactory::new($db)->create(['name' => 'Ada']);      // inserted, id and defaults filled in
+$users = UserFactory::new($db)->count(10)->create();           // list<User>
+$row = UserFactory::new($db)->make();                          // an array, not inserted
+PostFactory::new($db)->count(5000)->state(['user_id' => $ada->id])->insert();   // bulk: few statements, returns the count
+```
+
+`state([...])` or `state(fn (array $row, int $i) => [...])` changes columns,
+`sequence(['role' => 'admin'], ['role' => 'member'])` takes turns, `afterCreating(fn ($user) => ...)`
+adds related rows, and a column given as a closure (`'user_id' => fn () =>
+UserFactory::new($this->db)->create()->id`) is only created when nothing else supplied it.
+`self::password()` hashes "password" once per run, so seeding thousands of users stays fast.
+
+`Pype\Database\Fake` gives names, emails (never repeated within a run), words, sentences,
+numbers, dates, UUIDs, `pick()` from a list and `unique()`; `new Fake(seed: 42)` repeats exactly.
+For realistic, local data (South African addresses, phone and ID numbers, 75 locales),
+`composer require --dev fakerphp/faker` (MIT, ~12 MB) and call it inside `definition()`:
+`\Faker\Factory::create('en_ZA')->idNumber()`. It's dev-only, so don't use it in seeders that
+must run in production.
+
+**Seeders** fill the database: `database/seeders/DatabaseSeeder.php` runs with
+`php bin/pype db:seed` (or `migrate:fresh --seed`; `--class=OtherSeeder` for another). `run()`
+gets services injected like a command, plus `Input` for options (`db:seed --users=50`), and
+`$this->call(OtherSeeder::class)` runs others. The skeleton's seeder creates
+`demo@example.com` / `password` and ten more users. With `APP_DEBUG=false`, `db:seed` needs
+`--force`, so demo data never lands in production by accident.
+
 ## Running in production
 
 The default is nothing special: point nginx (or Apache) at `public/` with PHP-FPM. On each

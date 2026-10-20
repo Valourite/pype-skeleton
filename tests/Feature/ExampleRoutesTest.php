@@ -115,4 +115,18 @@ final class ExampleRoutesTest extends TestCase
         $this->assertStringContainsString('Welcome, Grace!', (string) $sent[0]->getHtml());
         $this->assertStringContainsString('http://localhost:8000/', (string) $sent[0]->getText(), 'absolute link in the text part');
     }
+
+    public function test_factories_make_users_for_setup(): void
+    {
+        // When a test only needs users to exist, a factory is quicker than registering.
+        $db = $this->app->container->get(\Pype\Database\Connection::class);
+        \Database\Factories\UserFactory::new($db)->count(3)->create();
+        $ada = \Database\Factories\UserFactory::new($db)->create(['email' => 'ada@example.com']);
+
+        $login = $this->client->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'password']);
+        $this->assertSame(200, $login->status(), $login->body());
+        $users = $this->client->withHeaders(['Authorization' => 'Bearer ' . $login->json('data.token.token')])->get('/users');
+        $this->assertCount(4, $users->json('data'));
+        $this->assertSame($ada->id, $users->json('data.3.id'));
+    }
 }

@@ -35,6 +35,10 @@ everything a developer uses. Framework internals and design rules are in the fra
   - migrations: `php bin/pype make:migration create_things_table` writes a schema-builder
     migration that runs on SQLite, MySQL and Postgres, with a `down()` that undoes it
     (`migrate:rollback`). Once a migration ran in production, change things with a new one.
+  - test and demo data: factories in `database/factories/` (`php bin/pype make:factory Thing`;
+    `ThingFactory::new($db)->create()`, `->count(10)->create()`, `->insert()` for volume) and
+    seeders in `database/seeders/` (`php bin/pype db:seed`, `migrate:fresh --seed`). Tests that
+    only need a user to exist use `UserFactory` instead of registering over HTTP.
 - **Background work:** slow or retryable work goes in a job (`php bin/pype make:job Name`,
   `app/Jobs/`), pushed with `Pype\Queue\Queue`; mail with `$mailer->queue(...)`. Recurring
   tasks go in `routes/schedule.php`.
