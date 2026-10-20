@@ -16,6 +16,7 @@
         <env name="LOG_PATH" value="storage/logs/testing"/>
         <env name="LOG_REQUESTS" value="false"/>
         <env name="MAIL_DRIVER" value="array" force="true"/>
+        <env name="CACHE_DRIVER" value="array" force="true"/>
         <!-- A fixed key for tests only (signed URLs); real apps get theirs from key:generate. -->
         <env name="APP_KEY" value="base64:dGVzdC1rZXktZm9yLXR3by1hcHBzLW9ubHktMDEyMzQ1Ng==" force="true"/>
     </php>

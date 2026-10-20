@@ -41,7 +41,7 @@ everything a developer uses. Framework internals and design rules are in the fra
 
 Everything switchable is in `.env` (see `.env.example`):
 - `DB_CONNECTION` (sqlite/mysql/pgsql), `SESSION_DRIVER` (database/file);
-- `RATE_LIMIT_DRIVER` (database/apcu);
+- `RATE_LIMIT_DRIVER` (database/apcu), `CACHE_DRIVER` (file/apcu/database/array/null);
 - `APP_SERVER` (fpm/swoole), `APP_DEBUG`.
 
 `config/*.php` are plain arrays.

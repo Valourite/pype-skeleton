@@ -67,6 +67,7 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `Pype\Auth\Auth`                    | `createUser`, `attempt`, `issueToken`, `revoke`, `revokeAll`            |
 | `new Throttle(5, 60)`               | rate limit per IP + route (429 + `Retry-After`); counters in the database or APCu (`RATE_LIMIT_DRIVER`) |
 | `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success (see Validation) |
+| `Pype\Cache\Cache`                 | `remember`, locks, background refresh, groups; file, APCu or database (see Cache) |
 | `new RequestId()`                   | `X-Request-Id` on every response                                        |
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
@@ -201,6 +202,63 @@ default `MAIL_DRIVER=log` writes emails to the log (see them in the log viewer);
 emails rendered locally, run [Mailpit](https://mailpit.axllent.org) and use `MAIL_HOST=127.0.0.1`,
 `MAIL_PORT=1025`, `MAIL_ENCRYPTION=none`. Sending goes through PHPMailer.
 
+## Cache
+
+Type-hint `Pype\Cache\Cache` (or PSR-16's `Psr\SimpleCache\CacheInterface`):
+
+```php
+fn (User $user, Cache $cache, Reports $reports) => $cache->remember(
+    "totals.{$user->id}.2026-10", 3600, fn () => $reports->totals($user->id, '2026-10'),
+);
+```
+
+| Call | Does |
+|---|---|
+| `get`, `set($key, $value, $ttl)`, `has`, `delete`, `clear` | PSR-16; `$ttl` in seconds, a `DateInterval`, or `null` for no expiry. `null` values are cached too |
+| `remember($key, $ttl, fn)` | the cached value, or the closure's result, cached |
+| `add($key, $value, $ttl)` | only if missing; atomic, so of two racing requests exactly one gets `true` |
+| `increment($key, $by)` / `decrement` | atomic counter, starts from 0 |
+| `pull`, `forever` | get-and-delete; set with no expiry |
+| `lock('send-invoices', 120)->run(fn)` | run while holding a lock (returns `null` if someone else holds it). Also `->get()` / `->release()` |
+| `stale($key, fresh: 60, stale: 600, fn)` | serve a slightly old value and refresh it **after the response** has been sent; only one request refreshes |
+| `group("user.{$id}")` | the same API, scoped to a group; `->flush()` empties the whole group with one write |
+
+**Keys:** PSR-16 reserves `{}()/\@:`, so separate parts with dots: `totals.5.2026-10`. Every key
+gets `CACHE_PREFIX` (default `pype.`), and `clear()` / `php bin/pype cache:clear` only remove
+keys with it.
+
+**Clearing what changed:** put a user's cached data in their group and flush it wherever the
+data changes:
+
+```php
+$cache->group("user.{$user->id}")->remember('dashboard', 3600, fn () => ...);   // reading
+$cache->group("user.{$user->id}")->flush();                                       // after a write
+```
+
+**Drivers** (`CACHE_DRIVER`):
+
+| Driver | Get (hit) | Use |
+|---|---|---|
+| `file` (default) | ~1.4 µs | one PHP file per key in `storage/cache`; opcache keeps hits in memory. Needs nothing |
+| `apcu` | ~0.4 µs | **recommended** on a single server: shared memory, no disk at all |
+| `database` | a query | shared by several servers; run `php bin/pype migrate` for the `cache` table |
+| `array` / `null` | | tests (phpunit.xml uses `array`) / caching off |
+
+Things to know about **APCu**:
+1. **`php bin/pype cache:clear` can't clear it.** The CLI has its own APCu memory, separate from
+   PHP-FPM's, so the command says so instead of pretending. Reload PHP-FPM to clear it (deploys
+   usually do); under OpenSwoole, restart the server.
+2. **It is per server** (so is `file`). Behind a load balancer, use `database`.
+3. **It has a fixed size**, `apc.shm_size` (32 MB by default). When it is full, old entries are
+   evicted; raise it if your cache is big.
+4. **Install it** with `pecl install apcu` or `apt install php-apcu`. For CLI use (commands,
+   tests), also set `apc.enable_cli=1`. Without the extension, `CACHE_DRIVER=apcu` fails with a
+   clear error.
+
+With `file` under OpenSwoole, set `opcache.file_update_protection=0` in php.ini so opcache
+serves cache files a worker wrote itself (safe: files appear by atomic rename). Under PHP-FPM
+nothing is needed.
+
 ## Logs and errors
 
 Inject the logger anywhere (it's PSR-3, so Monolog-style calls work):
@@ -317,6 +375,7 @@ deploy, after `composer install --no-dev --classmap-authoritative`, run:
 
 ```bash
 php bin/pype optimize      # compiles the route tables to bootstrap/cache/routes.php
+php bin/pype cache:clear   # if cached data changed shape (not for CACHE_DRIVER=apcu: reload PHP-FPM)
 ```
 
 PHP-FPM then reads the compiled tables (kept in memory by opcache) instead of rebuilding them on

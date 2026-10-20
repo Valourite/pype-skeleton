@@ -36,6 +36,7 @@ return [
         Pype\Session\SessionProvider::class,
         Pype\View\ViewProvider::class,
         Pype\Mail\MailProvider::class,
+        Pype\Cache\CacheProvider::class,
         App\Providers\AppProvider::class,
     ],
 ];
