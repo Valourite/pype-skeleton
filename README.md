@@ -69,6 +69,7 @@ Exceptions become `{"error": {...}}` *inside* the pipeline, so outer stages stil
 | `new Validate([...rules])`          | 422 on bad input; `ValidatedInput` injected on success (see Validation) |
 | `Pype\Cache\Cache`                 | `remember`, locks, background refresh, groups; file, APCu or database (see Cache) |
 | `Pype\Queue\Queue`                 | background jobs: `push`, `later`, retries, `queue:work` (see Queue); `routes/schedule.php` for cron tasks |
+| `new TrimStrings()` (global)        | trims string input before validation (passwords left alone)             |
 | `new RequestId()`                   | `X-Request-Id` on every response                                        |
 | `new Cors([...origins])`            | CORS headers + preflight                                                |
 | `new JsonBody(maxBytes: ...)`       | 413 on big bodies, 400 on malformed JSON                                |
@@ -88,7 +89,7 @@ The same users and stages serve both. Only the first and last stages differ.
 Auth isn't tied to either. `Authenticate` asks a list of *guards* who the user is (from
 `config/auth.php`: session, then bearer token). How a user proves who they are is your
 handler's job; `SessionGuard::login()` just remembers the result. For anything else (API keys,
-JWT, a header from your proxy), implement `Pype\Auth\Guard`:
+a header from your proxy), implement `Pype\Auth\Guard`:
 
 ```php
 $router->get('/account', ['web', new Authenticate(redirectTo: '/login'), ...]);    // browsers
@@ -108,6 +109,29 @@ Forms in templates:
 
 A session cookie only authenticates routes in the `'web'` stack, so every cookie-authenticated
 form post is CSRF-checked.
+
+### API tokens or JWTs?
+
+The bearer tokens `/auth/login` hands out are **API tokens**: random strings whose hash is stored
+in `api_tokens`. Each request costs one indexed lookup, and they can be revoked at once (logout,
+"sign out everywhere", a stolen token). Keep them for your own clients (SPA, mobile app, CLI).
+
+**JWTs** (`Pype\Auth\JwtGuard`) carry signed claims and are checked without a token lookup, but
+can't be revoked before they expire. Use them for tokens from an identity provider (Auth0,
+Cognito, Keycloak, Firebase: RS256 with their public key), for services that check each other's
+tokens, or short-lived stateless access. Add the guard and configure `jwt` in `config/auth.php`:
+
+```php
+'guards' => [Pype\Auth\SessionGuard::class, Pype\Auth\JwtGuard::class, Pype\Auth\TokenGuard::class],
+
+fn (Pype\Auth\Jwt $jwt, User $user) => ['token' => $jwt->issue(['sub' => (string) $user->id])];  // issue (HS256)
+$router->get('/me', ['auth', fn (User $user, Pype\Auth\JwtClaims $claims) => ...]);          // verify
+```
+
+The guard accepts only the algorithm your configured key allows (so `alg: none` and key
+confusion fail), checks `exp`/`nbf` (with `leeway`), and `iss`/`aud` when set. It loads the user
+by `sub`; with `'user' => 'claims'` it builds a `Pype\Auth\JwtUser` from the token instead
+(tokens from a provider whose users aren't in your table). Keep lifetimes short.
 
 ## Validation
 
@@ -373,6 +397,11 @@ the code around each line of the trace, the route and its stages, the request (p
 tokens and cookies hidden), and the log lines from that request. API clients still get JSON, and
 production shows a plain error.
 
+**Your API's error wording:** pype's own errors (no route, malformed JSON, failed validation,
+unauthenticated, a 500...) can be reworded in `config/app.php` `errors` without touching the
+JSON shape, and `new Validate($rules, status: 400)` changes a validation failure's status
+(422 by default).
+
 ## Links
 
 Name the routes you link to, then build links with `url()` instead of writing paths by hand:
@@ -417,7 +446,8 @@ setting). Type-hint `Pype\Database\Connection` anywhere:
 
 ```php
 $db->table('users')->where('id', $id)->as(User::class)->first();
-$db->table('posts')->insert(['title' => 'Hello']);
+$db->table('posts')->insert(['title' => 'Hello']);                       // the new id
+$db->table('posts')->insertReturning(['title' => 'Hi'], ['id', 'created_at']);  // columns the database filled
 $db->table('posts as p')
     ->join('users as u', 'u.id', '=', 'p.user_id')
     ->select('u.name')->selectRaw('COUNT(*) AS posts')
@@ -495,8 +525,12 @@ Or let OpenSwoole serve the app: it boots once and keeps it in memory, skipping 
 per-request start-up. Install the extension (`pecl install openswoole`), then:
 
 ```bash
-APP_SERVER=swoole php bin/pype serve --host=0.0.0.0 --port=8080 --workers=8
+APP_SERVER=swoole php bin/pype serve --host=0.0.0.0 --port=8080
 ```
+
+It starts one worker per CPU core (the container's CPU limit, if it has one): best when requests
+are CPU-bound, as with SQLite. If requests mostly wait on a network database, an outside API or
+password hashing, try `--workers` at 2-4 per core and measure.
 
 It serves `public/` files too, so no nginx is needed (put one in front for TLS if you like).
 Workers handle one request at a time, so your code runs exactly as under PHP-FPM. Two

@@ -20,8 +20,17 @@ return [
     //            directly. Needs the openswoole extension; code changes need a restart.
     'server' => env('APP_SERVER', 'fpm'),
     'swoole' => [
-        'workers' => env('SWOOLE_WORKERS'),   // default: 2 per CPU core
+        'workers' => env('SWOOLE_WORKERS'),   // default: 1 per CPU core (the container's limit, if any)
         'max_request' => 10000,               // recycle each worker after this many requests
+    ],
+
+    // Reword pype's own errors (JSON or page), e.g. to match an API contract. Keys:
+    // no_route, method_not_allowed, bad_json, payload_too_large, unsupported_media_type,
+    // unauthenticated, invalid_token, invalid_token_payload, validation, csrf, throttled,
+    // invalid_signature, unverified_email, invalid_param, server_error.
+    'errors' => [
+        // 'no_route' => 'Not found',
+        // 'server_error' => 'Something went wrong',
     ],
 
     // Where View templates live (relative to the project root).

@@ -10,6 +10,7 @@ use Pype\Http\Response;
 use Pype\Provider;
 use Pype\Stages\Cors;
 use Pype\Stages\JsonBody;
+use Pype\Stages\TrimStrings;
 use Pype\Stages\MethodOverride;
 use Pype\Stages\RequestId;
 
@@ -22,6 +23,7 @@ final class AppProvider implements Provider
             new RequestId(),
             new Cors(origins: ['*']),
             new JsonBody(maxBytes: 1024 * 1024),
+            new TrimStrings(),      // "  ada@x.test " → "ada@x.test" before validation (passwords left alone)
             new MethodOverride(),   // forms send PUT/PATCH/DELETE via a hidden _method field ($this->method() in templates)
         );
 
