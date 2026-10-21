@@ -6,6 +6,22 @@ offers, with examples, is `vendor/pype/framework/docs/GUIDE.md`: read the releva
 building something. Framework internals and design rules are in the framework repo
 (`vendor/pype/framework/CLAUDE.md` and `vendor/pype/framework/docs/`).
 
+## The shape of a feature
+
+Read GUIDE "Building a feature, start to finish" first: it has a whole feature (routes, stages,
+handler, page outlet) and a list of what not to do. In short: a route lists small classes that run in
+order and pass typed objects through the request context:
+
+```php
+$router->get('/quotes/{id}', [LoadQuote::class, QuoteView::class]);                       // load (404 if not theirs) → page
+$router->post('/quotes', [ValidateQuote::class, CreateQuote::class, RedirectOutlet::with('quotes.index', flash: 'Created.')]);   // validate → work → where browsers go (JSON gets the data)
+$router->patch('/quotes/{id}', [LoadQuote::class, ValidateQuote::class, UpdateQuote::class, RedirectOutlet::with('quotes.show', flash: 'Saved.')]);
+```
+
+Don't build a generic view-data bag or "context view", stages that only feed template variables,
+`ContainerAware` stages, a repository per table, or logic in route closures: use page outlets,
+constructor injection with `X::with(...)`, `$db->table()` in stages and handlers, and one class per step.
+
 ## How to build features here
 
 - **Routes:**
@@ -30,9 +46,11 @@ building something. Framework internals and design rules are in the framework re
   class (or `implements DeclaresContext` with static `requires()`/`provides()`). `php bin/pype routes:check`
   then reports any route that lists a stage before the one that provides what it needs, and
   `tests/Feature/RoutesTest.php` runs the same check in `composer test`. Undeclared stages are skipped.
-- **Handlers** are invokable classes or closures at the end of the route. Their parameters are
-  injected by type or route-param name: `fn (User $user, int $id, Connection $db) => ...`.
-  Return data, and let the outlet format it.
+- **Handlers** are invokable classes (`app/Handlers`) at the end of the route. Their parameters are
+  injected by type (context entries first, then services) or route-param name:
+  `__invoke(User $user, int $id, Connection $db)`. Return data and let the outlet format it, or return
+  `redirect(...)` after a form. Keep route files to class names; a one-line `fn (Quote $q) => $q` that
+  ends a JSON route is fine, anything more is a class.
 - **Hand data between stages via the request context:** `$request->context()->put($thing)`,
   then a later stage or handler takes it as a typed parameter. Never put per-request data in a
   service, singleton or static: the app may run under OpenSwoole, where one process serves many
@@ -49,7 +67,7 @@ building something. Framework internals and design rules are in the framework re
     the template: `[LoadQuote::class, QuoteView::class]`. See `WelcomeView`, `AccountView`, `ResetPasswordView`.
 - **Forms:**
   - POST with `<input type="hidden" name="_token" value="<?= e($csrf) ?>">`;
-  - PUT/PATCH/DELETE via `<?= $this->method('PATCH') ?>`;
+  - PUT/PATCH/DELETE via `<input type="hidden" name="_method" value="PATCH">`;
   - after a form, return `redirect('route.name', ['id' => 3], flash: 'Saved.')` from the handler (or
     any stage, to stop there), end the route with `RedirectOutlet::with('route.name', flash: 'Saved.')`,
     or reuse an API handler with `RedirectOnSuccess::with('route.name', 'Saved.')`. Route names fill
