@@ -2,15 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Handlers\ShowUser;
-use App\Handlers\Web\ForgotPassword;
-use App\Handlers\Web\Login;
-use App\Handlers\Web\Logout;
-use App\Handlers\Web\Register;
-use App\Handlers\Web\ResendVerification;
-use App\Handlers\Web\ResetPassword;
-use App\Handlers\Web\VerifyEmail;
 use App\Stages\FindUser;
+use App\Stages\Web\ForgotPassword;
+use App\Stages\Web\Login;
+use App\Stages\Web\Logout;
+use App\Stages\Web\Register;
+use App\Stages\Web\ResendVerification;
+use App\Stages\Web\ResetPassword;
+use App\Stages\Web\VerifyEmail;
 use App\Views\AccountView;
 use App\Views\ResetPasswordView;
 use App\Views\UserProfile;
@@ -28,16 +27,16 @@ use Pype\View\View;
 // every POST/PUT/PATCH/DELETE, and turns validation errors into "back to the form, with
 // errors". An outlet decides how each route's result leaves the pipeline: a View renders HTML.
 $router->group('/', ['web'], function (Router $router) {
-    // Name routes you link to; templates and handlers then use url('name', [...]).
+    // Name routes you link to; templates and stages then use url('name', [...]).
     // A page is stages that load what it shows, then a page outlet (app/Views) that hands it to
     // its template. Pages with nothing to load are just the outlet.
     $router->get('/', [WelcomeView::class])->name('home');
 
     // Same stages as GET /api/users/{id} in routes/api.php — only the outlet differs. UserProfile
     // is a class-based view (app/Views): its own template, data shaping and helper methods.
-    $router->get('/users/{id}/profile', [FindUser::class, ShowUser::class, UserProfile::class])->name('users.profile');
+    $router->get('/users/{id}/profile', [FindUser::class, UserProfile::class])->name('users.profile');
 
-    // Guests only see the forms; how you check credentials is up to your handler.
+    // Guests only see the forms; checking credentials is the Login stage's job (app/Stages/Web).
     $router->get('/login', [View::with('auth/login')])->name('login');
     $router->get('/register', [View::with('auth/register')])->name('register');
 

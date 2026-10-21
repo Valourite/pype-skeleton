@@ -48,7 +48,7 @@ feature, what not to do, the built-ins); `CLAUDE.md` imports it for Claude Code,
 ## Layout
 
 ```
-app/          your code: Stages, Handlers, Views, Providers, Data
+app/          your code: Stages (every step of a route), Views (page outlets), Outlets (JSON outlets), Data, Mail, Providers
 bootstrap/    builds the Application
 config/       plain PHP arrays (app, auth, database, session)
 database/     migrations/*.php and the SQLite file

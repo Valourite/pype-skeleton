@@ -2,27 +2,33 @@
 
 declare(strict_types=1);
 
-namespace App\Handlers\Web;
+namespace App\Stages\Web;
 
+use Closure;
 use Pype\Auth\Auth;
 use Pype\Exceptions\HttpException;
-use Pype\Http\Response;
+use Pype\Http\Request;
+use Pype\Pipeline\Stage;
 
 /**
  * The link in the welcome / verification email. ValidateSignature (on the route) has already
  * checked it wasn't changed or expired; the hash ties it to the address it was sent to.
  */
-final class VerifyEmail
+final class VerifyEmail implements Stage
 {
-    public function __invoke(int $id, string $hash, Auth $auth): Response
+    public function __construct(private readonly Auth $auth)
     {
-        $user = $auth->findUser($id);
+    }
 
-        if ($user === null || !hash_equals($auth->verificationHash($user), $hash)) {
+    public function handle(Request $request, Closure $next): mixed
+    {
+        $user = $this->auth->findUser((int) $request->param('id'));
+
+        if ($user === null || !hash_equals($this->auth->verificationHash($user), (string) $request->param('hash'))) {
             throw HttpException::forbidden('This verification link is not valid for your current email address.');
         }
 
-        $auth->markEmailVerified($user);
+        $this->auth->markEmailVerified($user);
 
         return redirect('account', flash: 'Thanks, your email address is verified.');
     }

@@ -19,9 +19,11 @@ final class UserProfile extends ViewOutlet
         return 'users/profile';
     }
 
-    /** @param User $user  whatever the stages before this returned */
-    protected function data(mixed $user, Request $request): array
+    /** FindUser (earlier in the route) put the User in the context. */
+    protected function data(mixed $data, Request $request): array
     {
+        $user = $request->context()->get(User::class);
+
         return [
             'user' => $user,
             'memberSince' => $user->created_at === null ? null : date('j F Y', strtotime($user->created_at)),

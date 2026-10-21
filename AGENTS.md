@@ -27,9 +27,11 @@ $router->group('/quotes', ['web', Authenticate::with(redirectTo: '/login')], fun
 }, name: 'quotes.');
 ```
 
-guard → validate → load → do the work → outlet. Stages live in `app/Stages`, handlers in
-`app/Handlers`, page outlets in `app/Views`. A JSON route uses the same stages and ends with a stage
-that returns the data.
+guard → validate → load → do the work → outlet. **Every step is a stage** (`app/Stages`, `make:stage`):
+it reads what earlier stages put in the context, does one thing, and calls `$next`, or, as the last
+step, returns the result. Outlets decide how the result goes out: page outlets in `app/Views`
+(`make:view`), JSON outlets in `app/Outlets` (a `JsonOutlet` subclass whose `data()` picks what
+clients see, like `UserJson`), or the default JSON outlet.
 
 **Don't:**
 - **Build a generic "context view" or a bag of view data.** Write one page outlet per page
@@ -37,9 +39,10 @@ that returns the data.
 - **Write stages that only exist to feed template variables.** Load the real object.
 - **Make your own stages `ContainerAware`.** Take services in the constructor and arguments through
   `X::with(...)`.
-- **Put logic in route closures.** A one-line `fn (Quote $q) => $q` that ends a JSON route is fine.
-- **Write a repository class per table.** Use `$db->table()` in stages and handlers, and a plain
-  service for logic several handlers share.
+- **Add a "handler" or "controller" layer.** The step that does the work is a stage that returns.
+- **Put logic in route closures.** Route files list stage and outlet classes.
+- **Write a repository class per table.** Use `$db->table()` in stages, and a plain service for logic
+  several stages share.
 - **Return 403 for someone else's record.** A `Load` stage gives 404.
 - **Keep per-request data in a service, singleton or static.** It belongs in the context, because
   under Swoole one process serves many requests.

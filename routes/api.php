@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Data\User;
-use App\Handlers\Auth\Login;
-use App\Handlers\Auth\Logout;
-use App\Handlers\Auth\Register;
-use App\Handlers\ShowUser;
+use App\Outlets\UserJson;
+use App\Stages\Api\Login;
+use App\Stages\Api\Logout;
+use App\Stages\Api\Register;
 use App\Stages\FindUser;
-use Pype\Database\Connection;
-use Pype\Http\Request;
+use App\Stages\Health;
+use App\Stages\ListUsers;
 use Pype\Routing\Router;
 use Pype\Stages\Throttle;
 use Pype\Validation\Validate;
@@ -21,7 +20,7 @@ use Pype\Validation\Validate;
 // /api/auth/login; the browser pages in routes/web.php use a session cookie instead. Same users,
 // same stages.
 
-$router->get('/health', fn () => ['status' => 'ok'])->name('health');
+$router->get('/health', [Health::class])->name('health');
 
 $router->group('/auth', [Throttle::with(maxAttempts: 10, decaySeconds: 60)], function (Router $router) {
     $router->post('/register', [
@@ -37,17 +36,18 @@ $router->group('/auth', [Throttle::with(maxAttempts: 10, decaySeconds: 60)], fun
     $router->post('/logout', ['auth', Logout::class]);
 });
 
-// Everything in this group requires a bearer token; the user is injected by type.
+// Everything in this group requires a bearer token; 'auth' puts the user in the context.
 $router->group('/', ['auth'], function (Router $router) {
-    $router->get('/me', fn (User $user) => $user);
+    // UserJson (app/Outlets) decides what a client sees of a user: here the signed-in one.
+    $router->get('/me', [UserJson::class]);
 
     // The usual routes of one kind of thing: apiResource() names them api.users.index and
     // api.users.show (resource() adds the create/edit form pages too). Leave a key out and that route
     // doesn't exist.
     $router->apiResource('/users', [
-        // Paginated: ?page=2 → {"data": [...], "meta": {"pagination": {page, per_page, total, last_page}}}
-        'index' => fn (Connection $db, Request $request) => $db->table('users')->orderBy('id')->as(User::class)->paginate(25, $request),
-        // A route is its own pipeline: FindUser loads the user into the context, ShowUser returns it.
-        'show' => [FindUser::class, ShowUser::class],
+        'index' => [ListUsers::class],                       // returns a Page; the default JSON outlet writes it
+        // FindUser loads the user into the context; UserJson writes it out. The web profile page
+        // (routes/web.php) is the same stage with a page outlet instead.
+        'show' => [FindUser::class, UserJson::class],
     ]);
 });
