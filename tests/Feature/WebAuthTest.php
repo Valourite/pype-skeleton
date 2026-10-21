@@ -4,102 +4,97 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use Database\Factories\UserFactory;
+use Pype\Database\Connection;
+use Pype\Testing\TestClient;
 use Tests\TestCase;
 
-/** The browser side: session cookie, CSRF-protected forms, redirects. */
+/**
+ * The browser side: session cookie, CSRF-protected forms, redirects. submit() loads the form page,
+ * takes its CSRF token and posts, like a browser; actingAs() signs in without the form.
+ */
 final class WebAuthTest extends TestCase
 {
-    /** Load a form page and pull the CSRF token out of it, like a browser would submit it. */
-    private function token(string $page = '/login'): string
+    private function register(): void
     {
-        preg_match('/name="_token" value="([0-9a-f]{64})"/', $this->client->get($page)->body(), $m);
-        $this->assertNotEmpty($m, "No CSRF field on {$page}");
-
-        return $m[1];
+        $this->client->submit('/register', '/register', ['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'correct-horse'])
+            ->assertRedirect('/account');
     }
 
     public function test_register_then_account_then_logout(): void
     {
-        $res = $this->client->post('/register', ['name' => 'Ada Lovelace', 'email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token('/register')]);
-        $this->assertSame(303, $res->status());
-        $this->assertSame('/account', $res->header('Location'));
+        $this->register();
 
-        $account = $this->client->get('/account');
-        $this->assertSame(200, $account->status());
-        $this->assertStringContainsString('<h1>Ada Lovelace</h1>', $account->body());
-        $this->assertStringContainsString('Welcome aboard!', $account->body());
+        $this->client->get('/account')->assertOk()->assertSee('<h1>Ada Lovelace</h1>')->assertSee('Welcome aboard!');
 
-        $logout = $this->client->post('/logout', ['_token' => $this->token('/account')]);
-        $this->assertSame('/login', $logout->header('Location'));
-        $this->assertStringContainsString('You have been signed out.', $this->client->get('/login')->body());
-        $this->assertSame('/login', $this->client->get('/account')->header('Location'));
+        $this->client->submit('/account', '/logout')->assertRedirect('/login');
+        $this->client->get('/login')->assertSee('You have been signed out.');
+        $this->client->get('/account')->assertRedirect('/login');
     }
 
     public function test_login_sends_you_back_where_you_were_going(): void
     {
-        $this->client->post('/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token('/register')]);
-        $this->client->post('/logout', ['_token' => $this->token('/account')]);
+        $this->register();
+        $this->client->submit('/account', '/logout');
 
-        $this->assertSame('/login', $this->client->get('/account')->header('Location'));
-        $res = $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token()]);
-        $this->assertSame('/account', $res->header('Location'));
+        $this->client->get('/account')->assertRedirect('/login');
+        $this->client->submit('/login', '/login', ['email' => 'ada@example.com', 'password' => 'correct-horse'])->assertRedirect('/account');
     }
 
     public function test_wrong_password_goes_back_to_the_form_with_an_error(): void
     {
-        $res = $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'nope', '_token' => $this->token()], ['Referer' => 'http://localhost/login', 'Host' => 'localhost']);
+        $this->client->submit('/login', '/login', ['email' => 'ada@example.com', 'password' => 'nope'])
+            ->assertStatus(303)
+            ->assertRedirect('/login');
 
-        $this->assertSame(303, $res->status());
-        $this->assertSame('/login', $res->header('Location'));
-
-        $form = $this->client->get('/login')->body();
-        $this->assertStringContainsString('These credentials do not match our records.', $form);
-        $this->assertStringContainsString('value="ada@example.com"', $form);
+        $this->client->get('/login')
+            ->assertSee('These credentials do not match our records.')
+            ->assertSee('value="ada@example.com"');
     }
 
     public function test_forms_need_the_csrf_token(): void
     {
-        $this->assertSame(419, $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'x'])->status());
+        $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'x'])->assertStatus(419);
+    }
+
+    public function test_acting_as_skips_the_login_form(): void
+    {
+        $ada = UserFactory::new($this->app->container->get(Connection::class))->create(['name' => 'Grace']);
+
+        $this->client->actingAs($ada)->get('/account')->assertOk()->assertSee('<h1>Grace</h1>');
     }
 
     public function test_session_and_tokens_are_separate_doors_to_the_same_users(): void
     {
-        $this->client->post('/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token('/register')]);
+        $this->register();
 
         // The session cookie doesn't open the API...
-        $this->assertSame(401, $this->client->get('/me')->status());
+        $this->client->get('/api/me')->assertUnauthorized();
 
         // ...a token does, for the same user.
         $api = $this->client->withoutCookies();
-        $token = $api->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'correct-horse'])->json('data.token.token');
-        $this->assertSame('Ada', $api->withHeaders(['Authorization' => "Bearer {$token}"])->get('/me')->json('data.name'));
+        $token = $api->post('/api/auth/login', ['email' => 'ada@example.com', 'password' => 'correct-horse'])->json('data.token.token');
+        $api->withHeaders(['Authorization' => "Bearer {$token}"])->get('/api/me')->assertJsonPath('data.name', 'Ada Lovelace');
     }
 
     public function test_remember_me_keeps_you_signed_in_after_the_session_ends(): void
     {
-        $this->client->post('/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'correct-horse', '_token' => $this->token('/register')]);
-        $this->client->post('/logout', ['_token' => $this->token('/account')]);
+        $this->register();
+        $this->client->submit('/account', '/logout');
 
-        $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'correct-horse', 'remember' => '1', '_token' => $this->token('/login')]);
+        $this->client->submit('/login', '/login', ['email' => 'ada@example.com', 'password' => 'correct-horse', 'remember' => '1']);
         $cookie = $this->client->cookies()->get('pype_remember');
         $this->assertNotNull($cookie);
 
         // Days later: the session is gone, the remember cookie isn't.
-        $later = new \Pype\Testing\TestClient($this->app);
+        $later = new TestClient($this->app);
         $later->cookies()->set('pype_remember', $cookie);
-        $this->assertSame(200, $later->get('/account')->status());
+        $later->get('/account')->assertOk();
 
         // Signing out there forgets this device.
-        $later->post('/logout', ['_token' => $this->tokenFor($later, '/account')]);
-        $again = new \Pype\Testing\TestClient($this->app);
+        $later->submit('/account', '/logout');
+        $again = new TestClient($this->app);
         $again->cookies()->set('pype_remember', $cookie);
-        $this->assertSame('/login', $again->get('/account')->header('Location'));
-    }
-
-    private function tokenFor(\Pype\Testing\TestClient $client, string $page): string
-    {
-        preg_match('/name="_token" value="([0-9a-f]{64})"/', $client->get($page)->body(), $m);
-
-        return $m[1];
+        $again->get('/account')->assertRedirect('/login');
     }
 }

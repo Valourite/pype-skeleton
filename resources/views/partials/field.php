@@ -9,16 +9,16 @@
  * @var string|null $hint
  */
 $type ??= 'text';
-$error = $this->error($name);
+$message = $error($name);   // $error is the helper; don't overwrite it
 ?>
-<label class="field<?= $error ? ' has-error' : '' ?>">
+<label class="field<?= $message ? ' has-error' : '' ?>">
     <span><?= e($label) ?></span>
     <input name="<?= e($name) ?>" type="<?= e($type) ?>"
-           <?php if ($type !== 'password'): ?>value="<?= e($this->old($name)) ?>"<?php endif ?>
+           <?php if ($type !== 'password'): ?>value="<?= e($old($name)) ?>"<?php endif ?>
            <?php if (isset($autocomplete)): ?>autocomplete="<?= e($autocomplete) ?>"<?php endif ?>
-           <?php if ($error): ?>aria-invalid="true"<?php endif ?> required>
-    <?php if ($error): ?>
-        <small class="field-error"><?= e($error) ?></small>
+           <?php if ($message): ?>aria-invalid="true"<?php endif ?> required>
+    <?php if ($message): ?>
+        <small class="field-error"><?= e($message) ?></small>
     <?php elseif (isset($hint)): ?>
         <small class="muted"><?= e($hint) ?></small>
     <?php endif ?>

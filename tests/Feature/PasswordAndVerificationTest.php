@@ -12,13 +12,6 @@ use Tests\TestCase;
 /** Forgotten passwords and email verification, clicking the links in the emails like a user would. */
 final class PasswordAndVerificationTest extends TestCase
 {
-    private function token(string $page): string
-    {
-        preg_match('/name="_token" value="([0-9a-f]{64})"/', $this->client->get($page)->body(), $m);
-
-        return $m[1];
-    }
-
     /** @return list<Message> */
     private function mails(): array
     {
@@ -35,15 +28,15 @@ final class PasswordAndVerificationTest extends TestCase
 
     private function register(string $email = 'ada@example.com'): void
     {
-        $this->client->post('/register', ['name' => 'Ada', 'email' => $email, 'password' => 'correct-horse', '_token' => $this->token('/register')]);
+        $this->client->submit('/register', '/register', ['name' => 'Ada', 'email' => $email, 'password' => 'correct-horse']);
     }
 
     public function test_forgot_password_then_reset_with_the_emailed_link(): void
     {
         $this->register();
-        $this->client->post('/logout', ['_token' => $this->token('/account')]);
+        $this->client->submit('/account', '/logout');
 
-        $res = $this->client->post('/password/forgot', ['email' => 'ada@example.com', '_token' => $this->token('/password/forgot')]);
+        $res = $this->client->submit('/password/forgot', '/password/forgot', ['email' => 'ada@example.com']);
         $this->assertSame('/password/forgot', $res->header('Location'));
         $this->assertStringContainsString('If that email has an account', $this->client->get('/password/forgot')->body());
 
@@ -57,21 +50,21 @@ final class PasswordAndVerificationTest extends TestCase
         $this->assertStringContainsString('Change password', $form);
         $token = substr($link, strlen('/password/reset/'));
 
-        $mismatch = $this->client->post('/password/reset', ['token' => $token, 'password' => 'brand-new-pass', 'password_confirmation' => 'typo', '_token' => $this->token($link)]);
+        $mismatch = $this->client->submit($link, '/password/reset', ['token' => $token, 'password' => 'brand-new-pass', 'password_confirmation' => 'typo']);
         $this->assertSame(303, $mismatch->status(), 'back to the form with an error');
 
-        $done = $this->client->post('/password/reset', ['token' => $token, 'password' => 'brand-new-pass', 'password_confirmation' => 'brand-new-pass', '_token' => $this->token($link)]);
+        $done = $this->client->submit($link, '/password/reset', ['token' => $token, 'password' => 'brand-new-pass', 'password_confirmation' => 'brand-new-pass']);
         $this->assertSame('/login', $done->header('Location'));
         $this->assertStringContainsString('Your password has been changed', $this->client->get('/login')->body());
 
         // The new password works, the old one doesn't, and the link is spent.
-        $this->assertSame('/account', $this->client->post('/login', ['email' => 'ada@example.com', 'password' => 'brand-new-pass', '_token' => $this->token('/login')])->header('Location'));
+        $this->assertSame('/account', $this->client->submit('/login', '/login', ['email' => 'ada@example.com', 'password' => 'brand-new-pass'])->header('Location'));
         $this->assertStringContainsString('invalid or has expired', $this->client->get($link)->body());
     }
 
     public function test_unknown_emails_get_the_same_answer_and_no_mail(): void
     {
-        $res = $this->client->post('/password/forgot', ['email' => 'nobody@example.com', '_token' => $this->token('/password/forgot')]);
+        $res = $this->client->submit('/password/forgot', '/password/forgot', ['email' => 'nobody@example.com']);
 
         $this->assertSame('/password/forgot', $res->header('Location'));
         $this->assertStringContainsString('If that email has an account', $this->client->get('/password/forgot')->body());
@@ -82,7 +75,7 @@ final class PasswordAndVerificationTest extends TestCase
     {
         $this->assertStringContainsString('invalid or has expired', $this->client->get('/password/reset/' . str_repeat('a', 64))->body());
 
-        $res = $this->client->post('/password/reset', ['token' => str_repeat('a', 64), 'password' => 'brand-new-pass', 'password_confirmation' => 'brand-new-pass', '_token' => $this->token('/password/forgot')]);
+        $res = $this->client->submit('/password/forgot', '/password/reset', ['token' => str_repeat('a', 64), 'password' => 'brand-new-pass', 'password_confirmation' => 'brand-new-pass']);
         $this->assertSame(303, $res->status(), 'back to the form with an error');
     }
 
@@ -110,7 +103,7 @@ final class PasswordAndVerificationTest extends TestCase
     public function test_resending_the_verification_email(): void
     {
         $this->register();
-        $this->client->post('/email/verification-notification', ['_token' => $this->token('/account')]);
+        $this->client->submit('/account', '/email/verification-notification', []);
 
         $mails = $this->mails();
         $this->assertCount(2, $mails);

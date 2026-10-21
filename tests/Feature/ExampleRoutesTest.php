@@ -11,7 +11,7 @@ final class ExampleRoutesTest extends TestCase
     /** Register a user through the API and return [token, user id]. */
     private function register(string $email = 'ada@example.com'): array
     {
-        $res = $this->client->post('/auth/register', ['name' => 'Ada Lovelace', 'email' => $email, 'password' => 'correct-horse']);
+        $res = $this->client->post('/api/auth/register', ['name' => 'Ada Lovelace', 'email' => $email, 'password' => 'correct-horse']);
         $this->assertSame(201, $res->status(), $res->body());
 
         return [$res->json('data.token.token'), $res->json('data.user.id')];
@@ -21,32 +21,32 @@ final class ExampleRoutesTest extends TestCase
     {
         [$token] = $this->register();
 
-        $login = $this->client->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'correct-horse']);
+        $login = $this->client->post('/api/auth/login', ['email' => 'ada@example.com', 'password' => 'correct-horse']);
         $this->assertSame(200, $login->status());
         $this->assertSame('Bearer', $login->json('data.token.type'));
         $this->assertNull($login->json('data.user.password'));
 
         $authed = $this->client->withHeaders(['Authorization' => "Bearer {$token}"]);
-        $this->assertSame('Ada Lovelace', $authed->get('/me')->json('data.name'));
+        $this->assertSame('Ada Lovelace', $authed->get('/api/me')->json('data.name'));
 
-        $this->assertSame(204, $authed->post('/auth/logout')->status());
-        $this->assertSame(401, $authed->get('/me')->status());
+        $this->assertSame(204, $authed->post('/api/auth/logout')->status());
+        $this->assertSame(401, $authed->get('/api/me')->status());
     }
 
     public function test_bad_credentials_and_duplicate_registration(): void
     {
         $this->register();
 
-        $this->assertSame(401, $this->client->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'nope'])->status());
+        $this->assertSame(401, $this->client->post('/api/auth/login', ['email' => 'ada@example.com', 'password' => 'nope'])->status());
 
-        $dupe = $this->client->post('/auth/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'another-pass']);
+        $dupe = $this->client->post('/api/auth/register', ['name' => 'Ada', 'email' => 'ada@example.com', 'password' => 'another-pass']);
         $this->assertSame(422, $dupe->status());
         $this->assertSame(['That email is already registered.'], $dupe->json('error.errors.email'));
     }
 
     public function test_validation_errors(): void
     {
-        $res = $this->client->post('/auth/register', ['email' => 'nope', 'password' => 'short']);
+        $res = $this->client->post('/api/auth/register', ['email' => 'nope', 'password' => 'short']);
 
         $this->assertSame(422, $res->status());
         $this->assertSame(['name', 'email', 'password'], array_keys($res->json('error.errors')));
@@ -55,27 +55,27 @@ final class ExampleRoutesTest extends TestCase
     public function test_login_is_throttled(): void
     {
         for ($i = 0; $i < 10; $i++) {
-            $this->client->post('/auth/login', ['email' => 'x@example.com', 'password' => 'x']);
+            $this->client->post('/api/auth/login', ['email' => 'x@example.com', 'password' => 'x']);
         }
 
-        $this->assertSame(429, $this->client->post('/auth/login', ['email' => 'x@example.com', 'password' => 'x'])->status());
+        $this->assertSame(429, $this->client->post('/api/auth/login', ['email' => 'x@example.com', 'password' => 'x'])->status());
     }
 
     public function test_user_routes_require_auth_and_read_from_database(): void
     {
         [$token, $id] = $this->register();
 
-        $this->assertSame(401, $this->client->get("/users/{$id}")->status());
+        $this->assertSame(401, $this->client->get("/api/users/{$id}")->status());
 
         $authed = $this->client->withHeaders(['Authorization' => "Bearer {$token}"]);
-        $this->assertSame('ada@example.com', $authed->get("/users/{$id}")->json('data.email'));
-        $this->assertCount(1, $authed->get('/users')->json('data'));
-        $this->assertSame(404, $authed->get('/users/999')->status());
+        $this->assertSame('ada@example.com', $authed->get("/api/users/{$id}")->json('data.email'));
+        $this->assertCount(1, $authed->get('/api/users')->json('data'));
+        $this->assertSame(404, $authed->get('/api/users/999')->status());
     }
 
     public function test_request_id_on_every_response_including_errors(): void
     {
-        $this->assertNotNull($this->client->get('/health')->header('X-Request-Id'));
+        $this->assertNotNull($this->client->get('/api/health')->header('X-Request-Id'));
         $this->assertNotNull($this->client->get('/nope')->header('X-Request-Id'));
     }
 
@@ -97,16 +97,16 @@ final class ExampleRoutesTest extends TestCase
 
     public function test_cors_and_method_handling(): void
     {
-        $this->assertSame('*', $this->client->get('/health', ['Origin' => 'https://any.test'])->header('Access-Control-Allow-Origin'));
+        $this->assertSame('*', $this->client->get('/api/health', ['Origin' => 'https://any.test'])->header('Access-Control-Allow-Origin'));
 
-        $res = $this->client->delete('/health');
+        $res = $this->client->delete('/api/health');
         $this->assertSame(405, $res->status());
         $this->assertSame(['GET'], $res->json('error.allowed'));
     }
 
     public function test_registering_sends_a_welcome_email(): void
     {
-        $this->client->post('/auth/register', ['name' => 'Grace', 'email' => 'grace@mail.test', 'password' => 'correct-horse']);
+        $this->client->post('/api/auth/register', ['name' => 'Grace', 'email' => 'grace@mail.test', 'password' => 'correct-horse']);
 
         $sent = $this->app->container->get(\Pype\Mail\Transport::class)->messages();
         $this->assertCount(1, $sent);
@@ -123,9 +123,9 @@ final class ExampleRoutesTest extends TestCase
         \Database\Factories\UserFactory::new($db)->count(3)->create();
         $ada = \Database\Factories\UserFactory::new($db)->create(['email' => 'ada@example.com']);
 
-        $login = $this->client->post('/auth/login', ['email' => 'ada@example.com', 'password' => 'password']);
+        $login = $this->client->post('/api/auth/login', ['email' => 'ada@example.com', 'password' => 'password']);
         $this->assertSame(200, $login->status(), $login->body());
-        $users = $this->client->withHeaders(['Authorization' => 'Bearer ' . $login->json('data.token.token')])->get('/users');
+        $users = $this->client->withHeaders(['Authorization' => 'Bearer ' . $login->json('data.token.token')])->get('/api/users');
         $this->assertCount(4, $users->json('data'));
         $this->assertSame($ada->id, $users->json('data.3.id'));
     }

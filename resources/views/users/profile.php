@@ -28,5 +28,5 @@ $this->layout('layouts/app', ['title' => $user->name]);
 </div>
 
 <p class="muted" style="margin-top: 1.25rem">
-    Same stages as <code>GET /users/<?= e($user->id) ?></code> — only the outlet differs.
+    Same stages as <code>GET /api/users/<?= e($user->id) ?></code> — only the outlet differs.
 </p>

@@ -16,12 +16,15 @@ return [
 
     // What `php bin/pype serve` runs:
     //   'fpm'    PHP's built-in server for development (production: nginx + PHP-FPM, nothing to set)
-    //   'swoole' a long-running OpenSwoole server that boots the app once and serves production
-    //            directly. Needs the openswoole extension; code changes need a restart.
+    //   'swoole' a long-running OpenSwoole (or Swoole) server that boots the app once and serves
+    //            production directly. Needs the openswoole or swoole extension; code changes need a restart.
     'server' => env('APP_SERVER', 'fpm'),
     'swoole' => [
         'workers' => env('SWOOLE_WORKERS'),   // default: 1 per CPU core (the container's limit, if any)
         'max_request' => 10000,               // recycle each worker after this many requests
+        'static_handler' => env('SWOOLE_STATIC_HANDLER'),   // true: the server's own static file handler (see GUIDE)
+        // Any other server setting, passed through as is, e.g. 'package_max_length' => 16 * 1024 * 1024.
+        'settings' => [],
     ],
 
     // Reword pype's own errors (JSON or page), e.g. to match an API contract. Keys:
@@ -35,6 +38,8 @@ return [
 
     // Where View templates live (relative to the project root).
     'views' => 'resources/views',
+    // Where Latte (.latte) and BladeOne (.blade.php) templates compile to, if you use them.
+    'view_cache' => 'storage/views',
 
     // Providers wire services, stacks, global stages and outlets into the app.
     // Composer packages can ship their own Provider; list it here to enable it.

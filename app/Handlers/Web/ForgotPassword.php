@@ -9,7 +9,6 @@ use Pype\Auth\Auth;
 use Pype\Auth\PasswordResets;
 use Pype\Http\Response;
 use Pype\Mail\Mailer;
-use Pype\Session\Session;
 use Pype\Validation\ValidatedInput;
 
 /**
@@ -18,7 +17,7 @@ use Pype\Validation\ValidatedInput;
  */
 final class ForgotPassword
 {
-    public function __invoke(ValidatedInput $input, Auth $auth, PasswordResets $resets, Mailer $mailer, Session $session): Response
+    public function __invoke(ValidatedInput $input, Auth $auth, PasswordResets $resets, Mailer $mailer): Response
     {
         $user = $auth->findBy($input->get('email'));
         $token = $user === null ? null : $resets->create($user);   // null too if a link went out moments ago
@@ -27,8 +26,6 @@ final class ForgotPassword
             $mailer->later(new ResetPasswordMail($user, $token));
         }
 
-        $session->flash('status', 'If that email has an account, a link to reset the password is on its way.');
-
-        return Response::redirect(url('password.forgot'), 303);
+        return redirect('password.forgot', flash: 'If that email has an account, a link to reset the password is on its way.');
     }
 }

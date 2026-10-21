@@ -20,8 +20,7 @@ final class Register
         $user = $auth->createUser($input->all());
         $mailer->later(new WelcomeMail($user));   // after the response: signing up doesn't wait for the mail server
         $guard->login($session, $user);
-        $session->flash('status', 'Welcome aboard!');
 
-        return Response::redirect(url('account'), 303);
+        return redirect('account', flash: 'Welcome aboard!');
     }
 }

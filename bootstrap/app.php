@@ -14,7 +14,8 @@ $app = new Application(
     config: Application::loadConfig(__DIR__ . '/../config'),
 );
 
-$app->routes(__DIR__ . '/../routes/web.php');   // pages: sessions, CSRF, browser login
-$app->routes(__DIR__ . '/../routes/api.php');   // JSON: bearer tokens
+// Every file in routes/, subfolders too: api.php files are served under /api (names get api.),
+// everything else as it is. Add routes/quotes/web.php and it loads; `php bin/pype make:routes quotes`.
+$app->routesIn(__DIR__ . '/../routes');
 
 return $app;

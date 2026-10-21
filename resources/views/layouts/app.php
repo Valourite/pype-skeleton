@@ -23,7 +23,7 @@ $appName = env('APP_NAME', 'pype');
             <nav class="nav">
                 <a href="<?= url('home') ?>">Home</a>
                 <a href="<?= url('account') ?>">Account</a>
-                <a href="<?= url('health') ?>">API</a>
+                <a href="<?= url('api.health') ?>">API</a>
                 <a href="https://github.com/Valourite/pype-framework">Docs</a>
             </nav>
         </div>

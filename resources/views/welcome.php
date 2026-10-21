@@ -26,7 +26,7 @@ $describe = static fn (mixed $stage): string => match (true) {
 <div class="grid">
     <div class="card">
         <h3>Routes</h3>
-        <p>Pages in <code>routes/web.php</code> (sessions), JSON in <code>routes/api.php</code> (tokens).</p>
+        <p>Pages in <code>routes/web.php</code> (sessions), JSON in <code>routes/api.php</code> (tokens, under <code>/api</code>). Every file in <code>routes/</code> loads, so <code>routes/quotes/web.php</code> needs no registering.</p>
     </div>
     <div class="card">
         <h3>Stages</h3>
@@ -34,7 +34,7 @@ $describe = static fn (mixed $stage): string => match (true) {
     </div>
     <div class="card">
         <h3>Views</h3>
-        <p>Plain PHP templates in <code>resources/views</code>. End a route with <code>new View('name')</code>.</p>
+        <p>Plain PHP templates in <code>resources/views</code>. End a route with <code>View::with('name')</code>.</p>
     </div>
 </div>
 
@@ -58,8 +58,8 @@ $describe = static fn (mixed $stage): string => match (true) {
 </div>
 
 <h2>Try the API</h2>
-<pre><code>curl -X POST localhost:8000/auth/register \
+<pre><code>curl -X POST localhost:8000/api/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"name":"Ada","email":"ada@example.com","password":"correct-horse"}'
 
-curl localhost:8000/me -H 'Authorization: Bearer &lt;token&gt;'</code></pre>
+curl localhost:8000/api/me -H 'Authorization: Bearer &lt;token&gt;'</code></pre>

@@ -4,10 +4,10 @@
     <?= $this->partial('partials/status') ?>
 
     <form method="post" action="<?= url('login') ?>" class="form">
-        <?= $this->csrf() ?>
+        <input type="hidden" name="_token" value="<?= e($csrf) ?>">
         <?= $this->partial('partials/field', ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'autocomplete' => 'email']) ?>
         <?= $this->partial('partials/field', ['name' => 'password', 'label' => 'Password', 'type' => 'password', 'autocomplete' => 'current-password']) ?>
-        <label class="checkbox"><input type="checkbox" name="remember" value="1"<?= $this->old('remember') ? ' checked' : '' ?>> Remember me on this device</label>
+        <label class="checkbox"><input type="checkbox" name="remember" value="1"<?= $old('remember') ? ' checked' : '' ?>> Remember me on this device</label>
         <button type="submit" class="button">Sign in</button>
     </form>
 

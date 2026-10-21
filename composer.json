@@ -31,7 +31,8 @@
         ],
         "post-create-project-cmd": [
             "@php bin/pype key:generate",
-            "@php bin/pype migrate"
+            "@php bin/pype migrate",
+            "@php bin/pype install"
         ]
     },
     "minimum-stability": "stable",

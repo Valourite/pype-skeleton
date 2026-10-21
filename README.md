@@ -17,7 +17,14 @@ php bin/pype serve        # http://localhost:8000
 ```
 
 `create-project` copies this app, installs [`pype/framework`](https://github.com/Valourite/pype-framework)
-into `vendor/`, creates `.env`, and runs the migrations.
+into `vendor/`, creates `.env` with a fresh `APP_KEY`, runs the migrations, and then asks two questions:
+
+- **Templates:** plain PHP (no package), Latte, Blade (BladeOne), or both. Mix them freely later: the
+  file extension picks the engine.
+- **Faker:** for fake data in factories and seeders (the built-in `Fake` works without it).
+
+Change your mind any time with `php bin/pype install`. In CI or scripts, answer with flags:
+`php bin/pype install --template=latte --faker` (or `--no-interaction` for neither).
 
 ```bash
 php bin/pype routes            # every route and its stages
@@ -43,7 +50,8 @@ config/       plain PHP arrays (app, auth, database, session)
 database/     migrations/*.php and the SQLite file
 public/       web root (index.php, css/)
 resources/    views/
-routes/       web.php (pages, sessions) and api.php (JSON, tokens)
+routes/       web.php (pages, sessions) and api.php (JSON under /api, tokens); every file loads,
+              so feature folders work too: routes/quotes/web.php, routes/quotes/api.php
 tests/        PHPUnit feature tests (Pype\Testing\TestClient, in-memory SQLite)
 bin/pype      CLI
 vendor/       pype/framework lives here

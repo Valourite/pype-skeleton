@@ -25,6 +25,6 @@ final class Login
 
         $guard->login($session, $user, remember: (bool) $input->get('remember'), userAgent: $request->header('user-agent'));
 
-        return Response::redirect($guard->intended($session, url('account')), 303);
+        return redirect($guard->intended($session, url('account')));
     }
 }

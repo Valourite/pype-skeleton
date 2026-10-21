@@ -7,7 +7,6 @@ namespace App\Handlers\Web;
 use Pype\Auth\Auth;
 use Pype\Exceptions\HttpException;
 use Pype\Http\Response;
-use Pype\Session\Session;
 
 /**
  * The link in the welcome / verification email. ValidateSignature (on the route) has already
@@ -15,7 +14,7 @@ use Pype\Session\Session;
  */
 final class VerifyEmail
 {
-    public function __invoke(int $id, string $hash, Auth $auth, Session $session): Response
+    public function __invoke(int $id, string $hash, Auth $auth): Response
     {
         $user = $auth->findUser($id);
 
@@ -24,8 +23,7 @@ final class VerifyEmail
         }
 
         $auth->markEmailVerified($user);
-        $session->flash('status', 'Thanks, your email address is verified.');
 
-        return Response::redirect(url('account'), 303);
+        return redirect('account', flash: 'Thanks, your email address is verified.');
     }
 }

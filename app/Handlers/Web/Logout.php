@@ -14,8 +14,7 @@ final class Logout
     public function __invoke(SessionGuard $guard, Session $session, Request $request): Response
     {
         $guard->logout($session, $request);   // the request: so this device's "remember me" is forgotten too
-        $session->flash('status', 'You have been signed out.');
 
-        return Response::redirect(url('login'), 303);
+        return redirect('login', flash: 'You have been signed out.');
     }
 }

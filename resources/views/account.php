@@ -7,7 +7,7 @@ $this->layout('layouts/app', ['title' => 'Account']);
     <div class="notice with-action">
         <span>Please confirm your email address: we sent a link to <?= e($user->email) ?>.</span>
         <form method="post" action="<?= url('verification.send') ?>">
-            <?= $this->csrf() ?>
+            <input type="hidden" name="_token" value="<?= e($csrf) ?>">
             <button type="submit" class="button secondary">Send it again</button>
         </form>
     </div>
@@ -24,11 +24,11 @@ $this->layout('layouts/app', ['title' => 'Account']);
     </dl>
 
     <form method="post" action="<?= url('logout') ?>" class="inline-form">
-        <?= $this->csrf() ?>
+        <input type="hidden" name="_token" value="<?= e($csrf) ?>">
         <button type="submit" class="button secondary">Sign out</button>
     </form>
 </div>
 
 <p class="muted small" style="margin-top: 1.25rem">
-    Signed in with a session cookie. <code>GET /me</code> returns the same user to an API client with a bearer token.
+    Signed in with a session cookie. <code>GET /api/me</code> returns the same user to an API client with a bearer token.
 </p>
