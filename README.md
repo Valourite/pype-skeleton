@@ -41,6 +41,10 @@ queue, schedule, database, factories and seeders, testing, production...) is in 
 guide: **`vendor/pype/framework/docs/GUIDE.md`** in your app, or
 [on GitHub](https://github.com/Valourite/pype-framework/blob/main/docs/GUIDE.md).
 
+Working with an AI assistant? `AGENTS.md` holds the rules for building on pype (the shape of a
+feature, what not to do, the built-ins); `CLAUDE.md` imports it for Claude Code, and other agents read
+`AGENTS.md` directly.
+
 ## Layout
 
 ```
