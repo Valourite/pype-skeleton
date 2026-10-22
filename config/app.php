@@ -21,10 +21,10 @@ return [
     'server' => env('APP_SERVER', 'fpm'),
     // OpenSwoole/Swoole server settings, passed through as is over pype's defaults. Every SWOOLE_*
     // variable in .env sets one: SWOOLE_MAX_REQUEST=0 is 'max_request' => 0, SWOOLE_PACKAGE_MAX_LENGTH,
-    // SWOOLE_MODE=process ... Short names: workers (worker_num, default 1 per CPU core) and
+    // SWOOLE_MODE=base ... Short names: workers (worker_num, default 1 per CPU core) and
     // static_handler (true: the server's own static file handler, see GUIDE).
     'swoole' => [
-        'mode' => 'base',          // base: workers own their connections | process: a reactor holds them
+        'mode' => 'process',       // process: a reactor holds the connections | base: each worker owns its own
         'max_request' => 100000,   // recycle each worker after this many requests (0 = never)
         ...env_prefixed('SWOOLE_'),
     ],
