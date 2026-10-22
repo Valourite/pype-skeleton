@@ -9,8 +9,12 @@ return [
             'driver' => 'sqlite',
             // Relative paths resolve from the project root. Use ':memory:' for throwaway DBs.
             'database' => env('DB_DATABASE', 'database/database.sqlite'),
-            // Defaults: WAL, synchronous=NORMAL, foreign_keys=ON, busy_timeout=5000. Override here:
-            'pragmas' => [],
+            // Defaults: journal_mode=WAL, synchronous=NORMAL, foreign_keys=ON, busy_timeout=5000,
+            // cache_size=-20000, temp_store=MEMORY. Every SQLITE_* variable in .env sets a pragma
+            // (SQLITE_BUSY_TIMEOUT=10000); add your own here. null leaves one unset.
+            'pragmas' => [
+                ...env_prefixed('SQLITE_'),
+            ],
         ],
 
         'mysql' => [

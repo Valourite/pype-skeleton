@@ -19,12 +19,14 @@ return [
     //   'swoole' a long-running OpenSwoole (or Swoole) server that boots the app once and serves
     //            production directly. Needs the openswoole or swoole extension; code changes need a restart.
     'server' => env('APP_SERVER', 'fpm'),
+    // OpenSwoole/Swoole server settings, passed through as is over pype's defaults. Every SWOOLE_*
+    // variable in .env sets one: SWOOLE_MAX_REQUEST=0 is 'max_request' => 0, SWOOLE_PACKAGE_MAX_LENGTH,
+    // SWOOLE_MODE=process ... Short names: workers (worker_num, default 1 per CPU core) and
+    // static_handler (true: the server's own static file handler, see GUIDE).
     'swoole' => [
-        'workers' => env('SWOOLE_WORKERS'),   // default: 1 per CPU core (the container's limit, if any)
-        'max_request' => 10000,               // recycle each worker after this many requests
-        'static_handler' => env('SWOOLE_STATIC_HANDLER'),   // true: the server's own static file handler (see GUIDE)
-        // Any other server setting, passed through as is, e.g. 'package_max_length' => 16 * 1024 * 1024.
-        'settings' => [],
+        'mode' => 'base',          // base: workers own their connections | process: a reactor holds them
+        'max_request' => 100000,   // recycle each worker after this many requests (0 = never)
+        ...env_prefixed('SWOOLE_'),
     ],
 
     // Reword pype's own errors (JSON or page), e.g. to match an API contract. Keys:

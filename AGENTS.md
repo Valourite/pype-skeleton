@@ -74,6 +74,9 @@ clients see, like `UserJson`), or the default JSON outlet.
   - Type-hint `Connection` and use `$db->table(...)->as(Thing::class)`. There's no ORM.
   - Create migrations with `make:migration`. Each has a `down()`. Once a migration has run in
     production, change things with a new one.
+  - **Index every column a list filters or sorts by** (`$t->index(['team_id', 'status'])`,
+    `$t->index(['team_id', 'updated_at'])`). Foreign keys get one automatically; sort columns don't.
+    Sorting 500,000 rows by an unindexed column halved a test app's throughput.
 - **Prefer native PHP** over packages.
 
 ## Built-ins: check here before writing your own
@@ -85,7 +88,9 @@ clients see, like `UserJson`), or the default JSON outlet.
 | records that belong to someone | a `Load` stage: 404 when it isn't theirs, then puts it in the context |
 | rate limiting | `Throttle::with(5, 60)` per IP; `by: User::class` per user; `key: 'send'` to share a counter |
 | redirect after a form | `RedirectOutlet::with('name', flash: '...')`, or `redirect(...)` from any stage |
-| lists | `->paginate(25, $request)`, then `$page->links()` in the view; `simplePaginate()` without a count |
+| lists | `->paginate(25, $request)`, then `$page->links()` in the view; in a JSON outlet, return `$page->map(fn ...)` from `data()` (keeps `meta.pagination`); `simplePaginate()` without a count |
+| JSON status (201 Created) | `JsonOutlet::with(status: 201)` or `protected ?int $status = 201;` in your outlet; errors keep theirs |
+| data classes | `->as(Thing::class)` casts to the constructor's types (`bool` from SQLite 0/1, `DateTimeImmutable`, backed enums) |
 | signed links | `signed_url('name', [...], expiresIn: 3600)` + `ValidateSignature` |
 | cache | `Pype\Cache\Cache` (`remember`, locks, groups: flush a user's group after writes) |
 | mail | `Mailer::send()`, `later()`, `queue()`. While developing, read sent mail and click its links at `/_pype/mail` |
