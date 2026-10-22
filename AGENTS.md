@@ -44,6 +44,7 @@ clients see, like `UserJson`), or the default JSON outlet.
 - **Write a repository class per table.** Use `$db->table()` in stages, and a plain service for logic
   several stages share.
 - **Return 403 for someone else's record.** A `Load` stage gives 404.
+- **Write a permission check as a plain stage.** Extend `Authorize`, so routes:check sees what it needs.
 - **Keep per-request data in a service, singleton or static.** It belongs in the context, because
   under Swoole one process serves many requests.
 - **Write your own version of a built-in.** Check the table below first.
@@ -86,6 +87,7 @@ clients see, like `UserJson`), or the default JSON outlet.
 | validate input | `Validate::with([...])` or a `Validate` subclass. Per user/company: `unique:items,sku,{id},id,company_id={user.company_id}` (also `exists:`), or `rulesFor(Request)`. Forms with rows: `prepare()` drops empty rows and keeps the keys |
 | who the user is | the `'auth'` stack (session or token); `Authenticate::with(redirectTo: '/login')` for pages; `JwtGuard` |
 | records that belong to someone | a `Load` stage: 404 when it isn't theirs, then puts it in the context |
+| may this user do this? (admins, "can edit this ticket") | a stage extending `Pype\Auth\Authorize` (`make:authorize EnsureAdmin`): `allows(User $user, Ticket $ticket): bool`, filled from the context; 403 by default, `$status = 404` to hide, `$redirectTo` for pages. Roles are a column on your users table |
 | rate limiting | `Throttle::with(5, 60)` per IP; `by: User::class` per user; `key: 'send'` to share a counter |
 | redirect after a form | `RedirectOutlet::with('name', flash: '...')`, or `redirect(...)` from any stage |
 | lists | `->paginate(25, $request)`, then `$page->links()` in the view; in a JSON outlet, return `$page->map(fn ...)` from `data()` (keeps `meta.pagination`); `simplePaginate()` without a count |
@@ -116,7 +118,7 @@ clients see, like `UserJson`), or the default JSON outlet.
 php bin/pype serve             # dev server (APP_SERVER=swoole for OpenSwoole/Swoole)
 php bin/pype routes            # every route and its stages
 php bin/pype routes:check      # stage order, without running anything
-php bin/pype make:routes|make:stage|make:view|make:migration|make:factory|make:job Name
+php bin/pype make:routes|make:stage|make:authorize|make:view|make:migration|make:factory|make:job Name
 php bin/pype migrate
 php bin/pype install           # add Latte, Blade or Faker
 composer test
