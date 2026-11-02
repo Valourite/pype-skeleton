@@ -7,6 +7,11 @@ return [
     // Base for absolute links (url(..., absolute: true), signed_url()), e.g. https://example.com
     'url' => env('APP_URL', 'http://localhost:8000'),
 
+    // Proxies/load balancers allowed to tell us the client's IP, scheme and host (X-Forwarded-For,
+    // -Proto, -Host): IPs and CIDR ranges, comma-separated. Empty: nobody (headers ignored).
+    // '*' trusts whatever connects: only when nothing but the proxy can reach the app.
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
     // Secret for signed URLs. `php bin/pype key:generate` sets it (create-project already did).
     'key' => env('APP_KEY', ''),
 

@@ -13,6 +13,7 @@ use Pype\Stages\JsonBody;
 use Pype\Stages\TrimStrings;
 use Pype\Stages\MethodOverride;
 use Pype\Stages\RequestId;
+use Pype\Stages\TrustProxies;
 
 final class AppProvider implements Provider
 {
@@ -20,6 +21,7 @@ final class AppProvider implements Provider
     {
         // Global stages wrap every request, including 404s and errors. Order = outermost first.
         $app->through(
+            new TrustProxies(),     // behind a proxy: the real client IP/scheme/host, only from TRUSTED_PROXIES
             new RequestId(),
             new Cors(origins: ['*']),
             new JsonBody(maxBytes: 1024 * 1024),

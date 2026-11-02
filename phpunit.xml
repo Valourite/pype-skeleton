@@ -25,5 +25,6 @@
         <env name="APP_KEY" value="base64:dGVzdC1rZXktZm9yLXR3by1hcHBzLW9ubHktMDEyMzQ1Ng==" force="true"/>
         <!-- Links in mail and signed URLs are checked against this, whatever .env serves on. -->
         <env name="APP_URL" value="http://localhost:8000" force="true"/>
+        <env name="TRUSTED_PROXIES" value="" force="true"/>
     </php>
 </phpunit>
