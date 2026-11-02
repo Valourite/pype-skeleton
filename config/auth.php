@@ -22,9 +22,10 @@ return [
     'tokens_table' => 'api_tokens',
     'token_ttl' => 60 * 24 * 30,
 
-    // JSON Web Tokens, used only if Pype\Auth\JwtGuard is in 'guards'. HS256 with a secret
-    // (32+ random bytes) for tokens your app issues ($jwt->issue([...])); RS256 with a public key
-    // (PEM, or 'kid' => PEM for several) for tokens from an identity provider.
+    // JSON Web Tokens, used only if Pype\Auth\JwtGuard is in 'guards' (needs `composer require
+    // lcobucci/jwt`). HS256 with a secret (at least 32 bytes) for tokens your app issues
+    // ($jwt->issue([...])); RS256 with a public key (PEM, or 'kid' => PEM for several; 2048+ bits)
+    // for tokens from an identity provider.
     'jwt' => [
         'secret' => env('JWT_SECRET'),
         'public_key' => env('JWT_PUBLIC_KEY'),
