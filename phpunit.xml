@@ -26,5 +26,6 @@
         <!-- Links in mail and signed URLs are checked against this, whatever .env serves on. -->
         <env name="APP_URL" value="http://localhost:8000" force="true"/>
         <env name="TRUSTED_PROXIES" value="" force="true"/>
+        <env name="APP_ENV" value="testing" force="true"/>
     </php>
 </phpunit>

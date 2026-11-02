@@ -2,6 +2,9 @@
 
 return [
     'name' => env('APP_NAME', 'pype'),
+    // local | testing | production. Production turns debug off whatever APP_DEBUG says (error page,
+    // log viewer, dev mailbox). Missing means production, so a forgotten setting is the safe one.
+    'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
 
     // Base for absolute links (url(..., absolute: true), signed_url()), e.g. https://example.com
