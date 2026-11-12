@@ -62,6 +62,7 @@ return [
         Pype\Mail\MailProvider::class,
         Pype\Cache\CacheProvider::class,
         Pype\Queue\QueueProvider::class,
+        Pype\Debug\DebugProvider::class,  // the development screens at /_pype (config/debug.php); debug only
         App\Providers\AppProvider::class,
     ],
 ];

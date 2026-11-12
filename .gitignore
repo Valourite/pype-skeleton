@@ -6,4 +6,5 @@
 /storage/logs/
 /storage/cache/
 /storage/mail/
+/storage/debug/
 /storage/views/

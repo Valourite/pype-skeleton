@@ -100,6 +100,7 @@ clients see, like `UserJson`), or the default JSON outlet.
 | encryption | `Pype\Security\Encrypter` |
 | test/demo data | factories + seeders (`make:factory`, `db:seed`); `Fake`, or Faker if installed |
 | logs | inject `Psr\Log\LoggerInterface`; view them at `/_pype/logs` |
+| see how a route or a request works | `/_pype` while developing: every route's stages (`/_pype/routes`), what each request did (`/_pype/requests`), and a sandbox database to send requests into (`/_pype/sandbox`, `php bin/pype sandbox:build`) |
 
 ## Testing
 
